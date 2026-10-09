@@ -31,6 +31,7 @@ const SOURCES = {
   designcraft: [craft("designcraft"), "getartcraft.com"],
   qbittorrent: [null, "qbittorrent.org"],
   ven: [null, "vencord.dev"],
+  claude: [null, "claude.ai"], // committed icon: the desktop app's own icon, resized to 128x128
   nanazip: ["https://raw.githubusercontent.com/M2Team/NanaZip/main/Assets/NanaZip.png", "github.com"],
   onlyoffice: [null, "onlyoffice.com"],
   viber: [null, "viber.com"],
