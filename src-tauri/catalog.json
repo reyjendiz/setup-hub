@@ -91,6 +91,15 @@
       "allowed_hosts": []
     },
     {
+      "id": "claude", "name": "Claude", "category": "productivity",
+      "description": { "en": "Anthropic's desktop app", "ru": "Десктоп-приложение Anthropic" },
+      "winget_id": "Anthropic.Claude",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "appx": "Claude_", "display_name": "^Claude$" },
+      "allowed_hosts": []
+    },
+    {
       "id": "bitwarden", "name": "Bitwarden", "category": "productivity",
       "description": { "en": "Open-source password manager", "ru": "Открытый менеджер паролей" },
       "winget_id": "Bitwarden.Bitwarden",
