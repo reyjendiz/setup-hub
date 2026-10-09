@@ -8,6 +8,15 @@ import { AppIcon, Badge, Button, Card, JobButton, PageHeader, Segmented, spring 
 import { Key, useT } from "../i18n";
 
 type Tab = "programs" | "games";
+
+/** Sections of the Programs tab, by catalog category. */
+const GROUPS: { id: string; title: Key; hint: Key }[] = [
+  { id: "everyday", title: "apps.groupEveryday", hint: "apps.groupEverydayHint" },
+  { id: "design", title: "apps.groupDesign", hint: "apps.groupDesignHint" },
+  { id: "coding", title: "apps.groupCoding", hint: "apps.groupCodingHint" },
+  { id: "dev", title: "apps.devTitle", hint: "apps.devHint" },
+];
+const groupOf = (i: Item) => (i.category === "creative" ? "design" : i.category === "coding" || i.category === "dev" ? i.category : "everyday");
 const tabOf = (i: Item): Tab => (i.category === "gaming" ? "games" : "programs");
 
 function savedTab(): Tab {
@@ -44,10 +53,11 @@ export default function Apps() {
   const matching = items.filter((i) => !q || i.name.toLowerCase().includes(q) || i.description[lang].toLowerCase().includes(q));
   const count = (tb: Tab) => matching.filter((i) => tabOf(i) === tb).length;
   const shown = matching.filter((i) => tabOf(i) === tab);
-  // The Claude Code toolchain gets its own group, so it can be installed in one go.
-  const dev = shown.filter((i) => i.category === "dev");
-  const rest = shown.filter((i) => i.category !== "dev");
-  const devMissing = dev.filter((i) => installed[i.id] === undefined).map((i) => i.id);
+  // Programs are grouped by who they're for; each group can be installed in one go. Games stay one grid.
+  const groups =
+    tab === "games"
+      ? [{ id: "games", items: shown }]
+      : GROUPS.map((g) => ({ ...g, items: shown.filter((i) => groupOf(i) === g.id) })).filter((g) => g.items.length > 0);
 
   const start = (ids: string[]) => {
     // Interactive installers go last so the silent ones finish without waiting on a click.
@@ -133,23 +143,25 @@ export default function Apps() {
       {shown.length === 0 ? (
         <p className="py-16 text-center text-[var(--secondary)]">{q ? t("apps.empty", { q: search }) : t("apps.emptyTab")}</p>
       ) : (
-        <>
-          <AppGrid items={rest} selected={selected} setSelected={setSelected} />
-          {dev.length > 0 && (
-            <section className="mt-8">
-              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2 className="section-title">{t("apps.devTitle")}</h2>
-                  <p className="text-[13px] text-[var(--secondary)]">{t("apps.devHint")}</p>
+        groups.map((g) => {
+          const missing = g.items.filter((i) => installed[i.id] === undefined).map((i) => i.id);
+          return (
+            <section key={g.id} className="mb-8">
+              {"title" in g && (
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2 className="section-title">{t(g.title)}</h2>
+                    <p className="text-[13px] text-[var(--secondary)]">{t(g.hint)}</p>
+                  </div>
+                  <Button disabled={missing.length === 0 || running} onClick={() => start(missing)}>
+                    {missing.length ? t("apps.installGroup", { n: missing.length }) : t("apps.allInstalled")}
+                  </Button>
                 </div>
-                <Button disabled={devMissing.length === 0} onClick={() => start(devMissing)}>
-                  {devMissing.length ? t("apps.installGroup", { n: devMissing.length }) : t("apps.allInstalled")}
-                </Button>
-              </div>
-              <AppGrid items={dev} selected={selected} setSelected={setSelected} />
+              )}
+              <AppGrid items={g.items} selected={selected} setSelected={setSelected} />
             </section>
-          )}
-        </>
+          );
+        })
       )}
       <p className="caption mb-20 mt-6">{t("apps.catalogOrigin", { origin: boot.catalog_origin })}</p>
       <LogSheet />

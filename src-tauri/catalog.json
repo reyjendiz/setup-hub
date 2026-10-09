@@ -18,6 +18,160 @@
       "note": { "en": "Becomes the default browser.", "ru": "Станет браузером по умолчанию." }
     },
     {
+      "id": "firefox", "name": "Mozilla Firefox", "category": "network",
+      "description": { "en": "Independent open-source web browser", "ru": "Независимый открытый браузер" },
+      "winget_id": "Mozilla.Firefox",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Mozilla Firefox" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "brave", "name": "Brave", "category": "network",
+      "description": { "en": "Privacy browser with a built-in ad blocker", "ru": "Приватный браузер со встроенным блокировщиком рекламы" },
+      "winget_id": "Brave.Brave",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Brave$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "thunderbird", "name": "Thunderbird", "category": "communication",
+      "description": { "en": "Email, calendar and contacts from Mozilla", "ru": "Почта, календарь и контакты от Mozilla" },
+      "winget_id": "Mozilla.Thunderbird",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Mozilla Thunderbird" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "whatsapp", "name": "WhatsApp", "category": "communication",
+      "description": { "en": "Messenger and calls (from the Microsoft Store)", "ru": "Мессенджер и звонки (из Microsoft Store)" },
+      "winget_id": "9NKSQGP7F2NH",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "appx": "5319275A.WhatsAppDesktop_" },
+      "allowed_hosts": [],
+      "winget_source": "msstore"
+    },
+    {
+      "id": "anydesk", "name": "AnyDesk", "category": "network",
+      "description": { "en": "Remote desktop: help someone or reach your PC", "ru": "Удалённый рабочий стол: помочь кому-то или зайти на свой ПК" },
+      "winget_id": "AnyDesk.AnyDesk",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^AnyDesk" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "localsend", "name": "LocalSend", "category": "network",
+      "description": { "en": "Send files to nearby phones and PCs, no cloud", "ru": "Передача файлов на телефоны и ПК рядом, без облака" },
+      "winget_id": "LocalSend.LocalSend",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^LocalSend" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "notepadpp", "name": "Notepad++", "category": "productivity",
+      "description": { "en": "Fast text and code editor", "ru": "Быстрый редактор текста и кода" },
+      "winget_id": "Notepad++.Notepad++",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Notepad\\+\\+" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "obsidian", "name": "Obsidian", "category": "productivity",
+      "description": { "en": "Notes and knowledge base in plain Markdown files", "ru": "Заметки и база знаний в обычных Markdown-файлах" },
+      "winget_id": "Obsidian.Obsidian",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Obsidian" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "bitwarden", "name": "Bitwarden", "category": "productivity",
+      "description": { "en": "Open-source password manager", "ru": "Открытый менеджер паролей" },
+      "winget_id": "Bitwarden.Bitwarden",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Bitwarden" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "everything", "name": "Everything", "category": "system",
+      "description": { "en": "Finds any file on the PC instantly", "ru": "Мгновенный поиск любого файла на ПК" },
+      "winget_id": "voidtools.Everything",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Everything" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "powertoys", "name": "PowerToys", "category": "system",
+      "description": { "en": "Microsoft's power-user utilities: FancyZones, Run, color picker…", "ru": "Утилиты Microsoft: FancyZones, Run, пипетка и другое" },
+      "winget_id": "Microsoft.PowerToys",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^PowerToys" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "obs", "name": "OBS Studio", "category": "media",
+      "description": { "en": "Screen recording and live streaming", "ru": "Запись экрана и стримы" },
+      "winget_id": "OBSProject.OBSStudio",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^OBS Studio" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "handbrake", "name": "HandBrake", "category": "media",
+      "description": { "en": "Converts and compresses video", "ru": "Конвертирует и сжимает видео" },
+      "winget_id": "HandBrake.HandBrake",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^HandBrake" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "audacity", "name": "Audacity", "category": "media",
+      "description": { "en": "Audio recording and editing", "ru": "Запись и редактирование звука" },
+      "winget_id": "Audacity.Audacity",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Audacity" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "hwinfo", "name": "HWiNFO", "category": "system",
+      "description": { "en": "Hardware info, temperatures and sensors", "ru": "Сведения о железе, температуры и датчики" },
+      "winget_id": "REALiX.HWiNFO",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^HWiNFO" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "cpuz", "name": "CPU-Z", "category": "system",
+      "description": { "en": "Processor, memory and motherboard details", "ru": "Сведения о процессоре, памяти и плате" },
+      "winget_id": "CPUID.CPU-Z",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^CPUID CPU-Z" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "crystaldiskinfo", "name": "CrystalDiskInfo", "category": "system",
+      "description": { "en": "Disk health (SMART) and temperature", "ru": "Здоровье дисков (SMART) и температура" },
+      "winget_id": "CrystalDewWorld.CrystalDiskInfo",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^CrystalDiskInfo" },
+      "allowed_hosts": []
+    },
+    {
       "id": "zoom", "name": "Zoom", "category": "communication",
       "description": { "en": "Video meetings and chat", "ru": "Видеовстречи и чат" },
       "winget_id": "Zoom.Zoom",
@@ -159,6 +313,51 @@
       "allowed_hosts": ["avamodmanager.com"]
     },
     {
+      "id": "epic", "name": "Epic Games Launcher", "category": "gaming",
+      "description": { "en": "Epic Games Store and free weekly games", "ru": "Магазин Epic Games и бесплатные игры каждую неделю" },
+      "winget_id": "EpicGames.EpicGamesLauncher",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Epic Games Launcher$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "eaapp", "name": "EA app", "category": "gaming",
+      "description": { "en": "Electronic Arts games and launcher", "ru": "Игры и лаунчер Electronic Arts" },
+      "winget_id": "ElectronicArts.EADesktop",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^EA app$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "ubisoft", "name": "Ubisoft Connect", "category": "gaming",
+      "description": { "en": "Ubisoft games and launcher", "ru": "Игры и лаунчер Ubisoft" },
+      "winget_id": "Ubisoft.Connect",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Ubisoft Connect" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "gog", "name": "GOG GALAXY", "category": "gaming",
+      "description": { "en": "DRM-free games from GOG and all your libraries in one place", "ru": "Игры без DRM от GOG и все библиотеки в одном месте" },
+      "winget_id": "GOG.Galaxy",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^GOG GALAXY" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "afterburner", "name": "MSI Afterburner", "category": "gaming",
+      "description": { "en": "GPU overclocking, fan curves and in-game FPS overlay", "ru": "Разгон видеокарты, кривые вентиляторов и FPS в играх" },
+      "winget_id": "Guru3D.Afterburner",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^MSI Afterburner" },
+      "allowed_hosts": []
+    },
+    {
       "id": "compresso", "name": "CompressO", "category": "creative",
       "description": { "en": "Shrink videos and images", "ru": "Сжатие видео и изображений" },
       "source": { "type": "github_release", "repo": "codeforreal1/compressO", "asset_regex": "_x64\\.exe$" },
@@ -173,6 +372,78 @@
       "silent_args": ["/S"],
       "detect": { "display_name": "^AutoPara" },
       "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "blender", "name": "Blender", "category": "creative",
+      "description": { "en": "3D modeling, animation and rendering", "ru": "3D-моделирование, анимация и рендер" },
+      "winget_id": "BlenderFoundation.Blender",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "(?i)^blender" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "affinity", "name": "Affinity", "category": "creative",
+      "description": { "en": "Photo, vector and layout in one app — free since Canva", "ru": "Фото, вектор и вёрстка в одном приложении — бесплатно от Canva" },
+      "winget_id": "Canva.Affinity",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "appx": "Canva.Affinity_" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "gimp", "name": "GIMP", "category": "creative",
+      "description": { "en": "Open-source image editor", "ru": "Открытый редактор изображений" },
+      "winget_id": "GIMP.GIMP.3",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^GIMP" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "krita", "name": "Krita", "category": "creative",
+      "description": { "en": "Digital painting and illustration", "ru": "Цифровая живопись и иллюстрация" },
+      "winget_id": "KDE.Krita",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Krita" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "inkscape", "name": "Inkscape", "category": "creative",
+      "description": { "en": "Vector graphics editor", "ru": "Редактор векторной графики" },
+      "winget_id": "Inkscape.Inkscape",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Inkscape" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "paintnet", "name": "Paint.NET", "category": "creative",
+      "description": { "en": "Simple, fast image editor", "ru": "Простой и быстрый редактор изображений" },
+      "winget_id": "dotPDN.PaintDotNet",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "(?i)^paint\\.net" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "canva", "name": "Canva", "category": "creative",
+      "description": { "en": "Designs, presentations and social posts", "ru": "Дизайн, презентации и посты для соцсетей" },
+      "winget_id": "Canva.Canva",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Canva" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "upscayl", "name": "Upscayl", "category": "creative",
+      "description": { "en": "AI image upscaler, runs locally", "ru": "Увеличение изображений нейросетью, локально" },
+      "winget_id": "Upscayl.Upscayl",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Upscayl" },
+      "allowed_hosts": []
     },
     {
       "id": "photocraft", "name": "PhotoCraft", "category": "creative",
@@ -270,6 +541,107 @@
       "allowed_hosts": ["github.com", "githubusercontent.com"],
       "print_screen": true,
       "note": { "en": "Gets the Print Screen key (instead of Snipping Tool) and starts with Windows.", "ru": "Получает клавишу Print Screen (вместо «Ножниц») и запускается вместе с Windows." }
+    },
+    {
+      "id": "vscode", "name": "Visual Studio Code", "category": "coding",
+      "description": { "en": "Code editor from Microsoft", "ru": "Редактор кода от Microsoft" },
+      "winget_id": "Microsoft.VisualStudioCode",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Microsoft Visual Studio Code" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "cursor", "name": "Cursor", "category": "coding",
+      "description": { "en": "AI code editor (VS Code based)", "ru": "Редактор кода с ИИ (на базе VS Code)" },
+      "winget_id": "Anysphere.Cursor",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Cursor" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "jetbrains", "name": "JetBrains Toolbox", "category": "coding",
+      "description": { "en": "Installs and updates IntelliJ IDEA, PyCharm, WebStorm…", "ru": "Ставит и обновляет IntelliJ IDEA, PyCharm, WebStorm…" },
+      "winget_id": "JetBrains.Toolbox",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^JetBrains Toolbox" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "powershell", "name": "PowerShell 7", "category": "coding",
+      "description": { "en": "The current cross-platform PowerShell", "ru": "Современный кроссплатформенный PowerShell" },
+      "winget_id": "Microsoft.PowerShell",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^PowerShell 7", "appx": "Microsoft.PowerShell_" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "githubdesktop", "name": "GitHub Desktop", "category": "coding",
+      "description": { "en": "Git with a simple window: commits, branches, pull requests", "ru": "Git в простом окне: коммиты, ветки, pull requests" },
+      "winget_id": "GitHub.GitHubDesktop",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^GitHub Desktop$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "ghcli", "name": "GitHub CLI", "category": "coding",
+      "description": { "en": "The gh command for GitHub", "ru": "Команда gh для GitHub" },
+      "winget_id": "GitHub.cli",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^GitHub CLI" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "docker", "name": "Docker Desktop", "category": "coding",
+      "description": { "en": "Containers on Windows (uses WSL 2)", "ru": "Контейнеры в Windows (через WSL 2)" },
+      "winget_id": "Docker.DockerDesktop",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Docker Desktop$" },
+      "allowed_hosts": [],
+      "needs_reboot": true,
+      "note": { "en": "Needs WSL 2 and a restart. Free for personal use and small businesses.", "ru": "Нужны WSL 2 и перезагрузка. Бесплатно для личного использования и малого бизнеса." }
+    },
+    {
+      "id": "postman", "name": "Postman", "category": "coding",
+      "description": { "en": "Build and test HTTP APIs", "ru": "Создание и проверка HTTP API" },
+      "winget_id": "Postman.Postman",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Postman" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "dbeaver", "name": "DBeaver", "category": "coding",
+      "description": { "en": "Universal database client (Community)", "ru": "Универсальный клиент баз данных (Community)" },
+      "winget_id": "DBeaver.DBeaver.Community",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^DBeaver" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "winscp", "name": "WinSCP", "category": "coding",
+      "description": { "en": "SFTP, FTP and SCP file transfers", "ru": "Передача файлов по SFTP, FTP и SCP" },
+      "winget_id": "WinSCP.WinSCP",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^WinSCP" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "putty", "name": "PuTTY", "category": "coding",
+      "description": { "en": "SSH and serial terminal", "ru": "Терминал SSH и COM-порта" },
+      "winget_id": "PuTTY.PuTTY",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^PuTTY release" },
+      "allowed_hosts": []
     },
     {
       "id": "git", "name": "Git", "category": "dev",

@@ -50,7 +50,8 @@ async fn main() -> anyhow::Result<()> {
         let (mut url, mut kind, mut signature, mut result) = (String::new(), String::new(), String::new(), "PASS".to_string());
 
         if let Some(w) = &it.winget_id {
-            let (code, o) = util::run("winget.exe", &["show", "--id", w, "-e", "--source", "winget", "--accept-source-agreements", "--disable-interactivity"]).await?;
+            let src = it.winget_source.as_deref().unwrap_or("winget");
+            let (code, o) = util::run("winget.exe", &["show", "--id", w, "-e", "--source", src, "--accept-source-agreements", "--disable-interactivity"]).await?;
             if code == 0 {
                 version = o.lines().find_map(|l| l.trim().strip_prefix("Version:")).unwrap_or("").trim().to_string();
                 let iu = o.lines().find_map(|l| l.trim().strip_prefix("Installer Url:")).unwrap_or("").trim().to_string();
