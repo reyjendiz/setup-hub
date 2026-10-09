@@ -41,6 +41,12 @@ pub fn sha256_file(path: &Path) -> Result<String> {
 /// Policy: a published SHA-256 must match; a signature, if present, must be Valid and match the
 /// expected publisher; an unsigned file is only accepted when its hash was verified.
 pub async fn verify(path: &Path, sha256: Option<&str>, publisher: Option<&str>) -> Result<String> {
+    verify_with(path, sha256, publisher, false).await
+}
+
+/// `allow_unsigned`: only for My Apps entries where the user explicitly confirmed "install anyway".
+/// A present-but-invalid signature or a hash mismatch still fails.
+pub async fn verify_with(path: &Path, sha256: Option<&str>, publisher: Option<&str>, allow_unsigned: bool) -> Result<String> {
     let mut log = Vec::new();
     let hash_ok = match sha256 {
         Some(want) => {
@@ -65,6 +71,7 @@ pub async fn verify(path: &Path, sha256: Option<&str>, publisher: Option<&str>) 
             log.push(format!("signed by {who}"));
         }
         "NotSigned" if hash_ok => log.push("unsigned (hash verified)".into()),
+        "NotSigned" if allow_unsigned => log.push("unsigned (installed anyway, confirmed by the user)".into()),
         "NotSigned" => bail!("installer is not signed and no published hash exists — refusing to run it"),
         other => bail!("signature check failed: {other}"),
     }

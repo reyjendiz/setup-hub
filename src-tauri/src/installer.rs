@@ -12,6 +12,109 @@ pub enum Outcome {
     Reboot,
 }
 
+/// Installer technology, sniffed from the file name and binary markers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    Msi,
+    Msix,
+    Zip,
+    SevenZip,
+    Inno,
+    Nsis,
+    WixBurn,
+    Squirrel,
+    InstallShield,
+    Unknown,
+}
+
+pub const SCRIPT_EXTS: [&str; 11] = ["bat", "cmd", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "hta", "reg"];
+
+pub fn ext_of(name: &str) -> String {
+    let path = name.split(['?', '#']).next().unwrap_or(name);
+    Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase()
+}
+
+pub fn is_script(name: &str) -> bool {
+    SCRIPT_EXTS.contains(&ext_of(name).as_str())
+}
+
+pub fn kind_of(name: &str, data: &[u8]) -> Kind {
+    match ext_of(name).as_str() {
+        "msi" => return Kind::Msi,
+        "msix" | "msixbundle" | "appx" | "appxbundle" => return Kind::Msix,
+        "zip" => return Kind::Zip,
+        "7z" => return Kind::SevenZip,
+        _ => {}
+    }
+    let has = |s: &[u8]| data.windows(s.len()).any(|w| w == s);
+    if has(b"Inno Setup") {
+        Kind::Inno
+    } else if has(b"Nullsoft") || has(b"NSIS Error") {
+        Kind::Nsis
+    } else if has(b".wixburn") {
+        Kind::WixBurn
+    } else if has(b"Squirrel") {
+        Kind::Squirrel
+    } else if has(b"InstallShield") {
+        Kind::InstallShield
+    } else {
+        Kind::Unknown
+    }
+}
+
+/// Reads the head and tail of the file (markers live there; installers can be gigabytes).
+pub fn detect_kind(path: &Path) -> Kind {
+    use std::io::{Read, Seek, SeekFrom};
+    let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let Ok(mut f) = std::fs::File::open(path) else { return Kind::Unknown };
+    let mut data = Vec::new();
+    let _ = (&mut f).take(16 << 20).read_to_end(&mut data);
+    let len = f.metadata().map(|m| m.len()).unwrap_or(0);
+    if len > 20 << 20 && f.seek(SeekFrom::End(-(4 << 20))).is_ok() {
+        let _ = f.take(4 << 20).read_to_end(&mut data);
+    }
+    kind_of(&name, &data)
+}
+
+pub fn suggested_args(k: Kind) -> Vec<String> {
+    let a: &[&str] = match k {
+        Kind::Inno => &["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+        Kind::Nsis => &["/S"],
+        Kind::Msi => &["/qn", "/norestart"],
+        Kind::WixBurn => &["/quiet", "/norestart"],
+        Kind::Squirrel => &["--silent"],
+        Kind::InstallShield => &["/s", "/v\"/qn\""],
+        _ => &[],
+    };
+    a.iter().map(|s| s.to_string()).collect()
+}
+
+/// Splits a user-typed argument string on spaces, keeping "quoted parts" together.
+pub fn split_args(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut quoted = false;
+    for c in s.chars() {
+        match c {
+            '"' => {
+                quoted = !quoted;
+                cur.push(c);
+            }
+            c if c.is_whitespace() && !quoted => {
+                if !cur.is_empty() {
+                    out.push(std::mem::take(&mut cur));
+                }
+            }
+            c => cur.push(c),
+        }
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
 /// Maps installer exit codes. 3010/1641 = success, reboot required.
 pub fn exit_outcome(code: i32) -> Result<Outcome> {
     match code {
@@ -57,9 +160,9 @@ pub fn winget_percent(line: &str) -> Option<f64> {
     (b > 0.0).then(|| (a / b * 100.0).min(100.0))
 }
 
-pub fn winget_args(id: &str) -> Vec<String> {
+pub fn winget_args(id: &str, source: &str) -> Vec<String> {
     [
-        "install", "--id", id, "-e", "--source", "winget", "--silent",
+        "install", "--id", id, "-e", "--source", source, "--silent",
         "--accept-package-agreements", "--accept-source-agreements", "--disable-interactivity",
     ]
     .iter()
@@ -70,11 +173,12 @@ pub fn winget_args(id: &str) -> Vec<String> {
 /// Runs winget, streaming download percent. Returns the outcome and the tail of its output.
 pub async fn winget_install(
     id: &str,
+    source: &str,
     cancel: &AtomicBool,
     on_progress: &(dyn Fn(Option<f64>, &str) + Send + Sync),
 ) -> Result<(Outcome, String)> {
     let mut child = util::tokio_cmd("winget.exe")
-        .args(winget_args(id))
+        .args(winget_args(id, source))
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
@@ -124,17 +228,31 @@ pub fn installer_cmd(file: &Path, args: &[String]) -> (String, Vec<String>) {
     }
 }
 
+/// Quotes an argument only when it has spaces and no quotes of its own, so user-typed
+/// switches like `/v"/qn"` reach the installer verbatim.
+fn arg_text(a: &str) -> String {
+    if a.contains(' ') && !a.contains('"') { format!("\"{a}\"") } else { a.to_string() }
+}
+
 pub async fn run_installer(file: &Path, args: &[String], unelevated: bool, cancel: &AtomicBool) -> Result<Outcome> {
+    // Defense in depth: scripts are refused at analysis time too.
+    if is_script(&file.to_string_lossy()) {
+        bail!("refusing to run a script file ({})", file.display());
+    }
     let (prog, a) = installer_cmd(file, args);
     if unelevated {
         let mut line = format!("\"{prog}\"");
         for x in &a {
-            line.push_str(&format!(" \"{x}\""));
+            line.push(' ');
+            line.push_str(&arg_text(x));
         }
         return exit_outcome(run_unelevated(&line, cancel).await?);
     }
-    let mut child = tokio::process::Command::new(&prog)
-        .args(&a)
+    let mut cmd = tokio::process::Command::new(&prog);
+    for x in &a {
+        cmd.raw_arg(arg_text(x));
+    }
+    let mut child = cmd
         .current_dir(file.parent().unwrap_or(Path::new(".")))
         .kill_on_drop(true)
         .spawn()
@@ -190,6 +308,21 @@ pub async fn run_unelevated(cmdline: &str, cancel: &AtomicBool) -> Result<i32> {
     result
 }
 
+/// Extracts .zip (built in) or .7z (Windows 11's bundled tar.exe / libarchive) into `dest`.
+pub async fn extract(archive: &Path, dest: &Path) -> Result<()> {
+    if ext_of(&archive.to_string_lossy()) == "zip" {
+        unzip(archive, dest)?;
+        return Ok(());
+    }
+    std::fs::create_dir_all(dest)?;
+    let tar = util::expand_env(r"%windir%\System32\tar.exe");
+    let (code, out) = util::run(&tar, &["-xf", &archive.to_string_lossy(), "-C", &dest.to_string_lossy()]).await?;
+    if code != 0 {
+        bail!("could not extract .7z (needs Windows 11 23H2+ tar.exe): {}", out.trim());
+    }
+    Ok(())
+}
+
 /// Extracts a zip, refusing entries that escape `dest` (zip-slip).
 pub fn unzip(zip: &Path, dest: &Path) -> Result<Vec<PathBuf>> {
     let mut a = zip::ZipArchive::new(std::fs::File::open(zip)?)?;
@@ -231,6 +364,36 @@ mod tests {
         assert_eq!(winget_percent("1.00 GB / 1.00 GB").unwrap(), 100.0);
         assert!((winget_percent("512 KB / 2.00 MB").unwrap() - 25.6).abs() < 0.01);
         assert!(winget_percent("Found Steam [Valve.Steam]").is_none());
+    }
+
+    #[test]
+    fn installer_kind_detection() {
+        assert_eq!(kind_of("x.MSI", b""), Kind::Msi);
+        assert_eq!(kind_of("NanaZip_7.msixbundle", b""), Kind::Msix);
+        assert_eq!(kind_of("a.7z", b""), Kind::SevenZip);
+        assert_eq!(kind_of("a.zip?x=1", b""), Kind::Zip);
+        assert_eq!(kind_of("s.exe", b"MZ....Inno Setup Setup Data (6.2.0)"), Kind::Inno);
+        assert_eq!(kind_of("s.exe", b"MZ..Nullsoft Install System v3.08"), Kind::Nsis);
+        // "Burn" alone appears in plenty of binaries (that was GearUP's false positive); only the PE section counts.
+        assert_eq!(kind_of("s.exe", b"MZ CD Burner Burn"), Kind::Unknown);
+        assert_eq!(kind_of("s.exe", b"MZ...PE..text.rdata\x00.wixburn\x00"), Kind::WixBurn);
+        assert_eq!(kind_of("s.exe", b"MZ SquirrelSetup.log"), Kind::Squirrel);
+        assert_eq!(kind_of("s.exe", b"MZ InstallShield(R)"), Kind::InstallShield);
+        assert_eq!(kind_of("s.exe", b"MZ nothing to see"), Kind::Unknown);
+        assert_eq!(suggested_args(Kind::Inno), vec!["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"]);
+        assert_eq!(suggested_args(Kind::Nsis), vec!["/S"]);
+        assert!(suggested_args(Kind::Unknown).is_empty());
+    }
+
+    #[test]
+    fn scripts_and_args() {
+        for s in ["a.bat", "B.CMD", "x.ps1", "y.vbs", "z.js", "q.hta", "r.reg", "https://h/x.ps1?dl=1"] {
+            assert!(is_script(s), "{s}");
+        }
+        assert!(!is_script("setup.exe") && !is_script("a.msi"));
+        assert_eq!(split_args(r#"/S /D="C:\Program Files\X"  /v"/qn""#), vec!["/S", r#"/D="C:\Program Files\X""#, r#"/v"/qn""#]);
+        assert_eq!(arg_text(r"C:\a b\x.msi"), r#""C:\a b\x.msi""#);
+        assert_eq!(arg_text(r#"/v"/qn""#), r#"/v"/qn""#);
     }
 
     #[test]

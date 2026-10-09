@@ -29,11 +29,24 @@ pub enum Source {
     Scrape { page: String, regex: String },
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Detect {
     pub display_name: Option<String>,
     pub path: Option<String>,
     pub appx: Option<String>,
+    /// Exact uninstall key ("HKLM\SOFTWARE\…\Uninstall\{GUID}"), recorded by snapshotting the first install.
+    #[serde(default)]
+    pub uninstall_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Mode {
+    #[default]
+    Silent,
+    DownloadOnly,
+    Interactive,
+    Extract,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -71,11 +84,28 @@ pub struct Item {
     #[serde(default)]
     pub unelevated: bool,
     pub note: Option<I18n>,
+    #[serde(default)]
+    pub mode: Mode,
+    /// winget source: "winget" (default) or "msstore".
+    #[serde(default)]
+    pub winget_source: Option<String>,
+    // Runtime-only flags for My Apps entries. skip_deserializing: a (remote) catalog can never set them.
+    #[serde(skip_deserializing, default)]
+    pub custom: bool,
+    #[serde(skip_deserializing, default)]
+    pub reviewed: bool,
+    #[serde(skip_deserializing, default)]
+    pub allow_unsigned: bool,
+    #[serde(skip_deserializing, default)]
+    pub allow_http: bool,
 }
 
 pub fn parse(json: &str) -> Result<Catalog> {
     let c: Catalog = serde_json::from_str(json)?;
     for it in &c.items {
+        if !matches!(it.winget_source.as_deref(), None | Some("winget") | Some("msstore")) {
+            bail!("{}: winget_source must be winget or msstore", it.id);
+        }
         // Validate at the trust boundary: a remote catalog must not smuggle in http:// or off-list hosts.
         if let Source::Direct { url } = &it.source {
             let u = reqwest::Url::parse(url).with_context(|| format!("{}: bad url", it.id))?;
@@ -141,17 +171,19 @@ pub struct Resolved {
     pub version: Option<String>,
 }
 
-#[derive(Deserialize, Clone)]
-struct GhAsset {
-    name: String,
-    browser_download_url: String,
-    digest: Option<String>,
+#[derive(Deserialize, Clone, Debug)]
+pub struct GhAsset {
+    pub name: String,
+    pub browser_download_url: String,
+    pub digest: Option<String>,
+    #[serde(default)]
+    pub size: u64,
 }
 
-#[derive(Deserialize, Clone)]
-struct GhRelease {
-    tag_name: String,
-    assets: Vec<GhAsset>,
+#[derive(Deserialize, Clone, Debug)]
+pub struct GhRelease {
+    pub tag_name: String,
+    pub assets: Vec<GhAsset>,
 }
 
 static GH_CACHE: Mutex<Option<HashMap<String, (Instant, GhRelease)>>> = Mutex::new(None);
@@ -176,7 +208,7 @@ impl std::fmt::Debug for NoRelease {
 }
 impl std::error::Error for NoRelease {}
 
-async fn github_latest(repo: &str, token: Option<&str>) -> Result<GhRelease> {
+pub async fn github_latest(repo: &str, token: Option<&str>) -> Result<GhRelease> {
     if let Some((t, r)) = GH_CACHE.lock().unwrap().get_or_insert_with(HashMap::new).get(repo) {
         if t.elapsed() < Duration::from_secs(600) {
             return Ok(r.clone());
@@ -238,7 +270,7 @@ mod tests {
     use super::*;
 
     fn a(n: &str) -> GhAsset {
-        GhAsset { name: n.into(), browser_download_url: format!("https://x/{n}"), digest: Some("sha256:ab".into()) }
+        GhAsset { name: n.into(), browser_download_url: format!("https://x/{n}"), digest: Some("sha256:ab".into()), size: 1 }
     }
 
     #[test]
@@ -264,6 +296,11 @@ mod tests {
         assert!(parse(&bad).is_err());
         let http = EMBEDDED.replace("https://download.scdn.co/", "http://download.scdn.co/");
         assert!(parse(&http).is_err());
+        // Safety flags are runtime-only: a catalog that tries to set them is ignored.
+        let sneaky = EMBEDDED.replace(r#""id": "spotify","#, r#""id": "spotify", "allow_unsigned": true, "reviewed": true, "allow_http": true,"#);
+        let c = parse(&sneaky).unwrap();
+        let s = c.items.iter().find(|i| i.id == "spotify").unwrap();
+        assert!(!s.allow_unsigned && !s.reviewed && !s.allow_http && !s.custom);
     }
 
     #[test]

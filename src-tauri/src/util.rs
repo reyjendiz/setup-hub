@@ -79,11 +79,17 @@ pub async fn run(program: &str, args: &[&str]) -> Result<(i32, String)> {
 }
 
 pub fn http(allowed: Vec<String>) -> reqwest::Client {
+    http_opts(allowed, false)
+}
+
+/// `allow_http`: only when the user enabled "Allow plain HTTP links" for a My Apps entry.
+pub fn http_opts(allowed: Vec<String>, allow_http: bool) -> reqwest::Client {
     reqwest::Client::builder()
         .user_agent(UA)
         .connect_timeout(std::time::Duration::from_secs(15))
         .redirect(reqwest::redirect::Policy::custom(move |a| {
-            let ok = a.url().scheme() == "https" && a.url().host_str().is_some_and(|h| host_allowed(h, &allowed));
+            let scheme_ok = a.url().scheme() == "https" || (allow_http && a.url().scheme() == "http");
+            let ok = scheme_ok && a.url().host_str().is_some_and(|h| host_allowed(h, &allowed));
             if !ok {
                 let msg = format!("redirect to non-allowed host: {}", a.url());
                 a.error(msg)

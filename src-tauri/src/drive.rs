@@ -155,6 +155,16 @@ pub async fn list(folder: &str, api_key: Option<&str>) -> Result<Vec<Entry>> {
     Ok(out)
 }
 
+/// File name of a single shared file (from Content-Disposition of a 1-byte probe).
+pub async fn file_name(id: &str) -> Result<String> {
+    let r = util::http(hosts()).get(file_url(id)).header("Range", "bytes=0-0").timeout(Duration::from_secs(15)).send().await?;
+    r.headers()
+        .get("content-disposition")
+        .and_then(|v| v.to_str().ok())
+        .and_then(crate::download::parse_disposition)
+        .context("this Drive file is not shared publicly")
+}
+
 /// When Drive serves the "can't scan for viruses" page instead of the file, rebuild the URL from its form.
 pub fn interstitial_url(html: &str) -> Option<String> {
     let action = regex::Regex::new(r#"<form[^>]+id="download-form"[^>]+action="([^"]+)""#).unwrap().captures(html)?[1].to_string();

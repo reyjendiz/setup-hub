@@ -26,6 +26,7 @@ const SOURCES = {
   onlyoffice: [null, "onlyoffice.com"],
   viber: [null, "viber.com"],
   uninstalltool: [null, "crystalidea.com"],
+  jonsbo: [null, "jonsbo.com"],
 };
 const only = process.argv.slice(2);
 

@@ -69,6 +69,12 @@ pub async fn fetch_vencord_cli(cancel: &AtomicBool) -> Result<()> {
         interactive: false,
         unelevated: false,
         note: None,
+        mode: Default::default(),
+        winget_source: None,
+        custom: false,
+        reviewed: false,
+        allow_unsigned: false,
+        allow_http: false,
     };
     let r = catalog::resolve(&item, crate::settings::get_secret("github_token").as_deref()).await?;
     let dir = util::cache_dir().join("vencord-cli");

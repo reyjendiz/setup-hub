@@ -7,6 +7,7 @@ pub mod drive;
 pub mod engine;
 pub mod gpu;
 pub mod installer;
+pub mod myapps;
 pub mod settings;
 pub mod sig;
 pub mod tweaks;
@@ -76,7 +77,7 @@ async fn bootstrap(eng: Eng<'_>) -> CmdResult<Boot> {
 
 #[tauri::command]
 async fn detect_installed(eng: Eng<'_>) -> CmdResult<HashMap<String, String>> {
-    let items = eng.catalog.read().unwrap().items.clone();
+    let items = eng.all_items();
     tokio::task::spawn_blocking(move || detect::detect_all(&items)).await.map_err(|e| e.to_string())
 }
 
@@ -217,9 +218,13 @@ fn install_nvidia(app: AppHandle, eng: Eng<'_>, clean: bool) {
 // ---------- Google Drive ----------
 
 #[tauri::command]
-async fn drive_list() -> CmdResult<Vec<drive::Entry>> {
+async fn drive_list(folder: Option<String>) -> CmdResult<Vec<drive::Entry>> {
     let key = settings::get_secret("google_api_key");
-    drive::list(drive::FOLDER_ID, key.as_deref()).await.map_err(err)
+    let folder = folder.unwrap_or_else(|| drive::FOLDER_ID.to_string());
+    if !folder.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        return Err("invalid Drive folder id".into());
+    }
+    drive::list(&folder, key.as_deref()).await.map_err(err)
 }
 
 #[derive(Deserialize)]
@@ -266,6 +271,176 @@ fn drive_download(app: AppHandle, eng: Eng<'_>, files: Vec<DriveFile>, dest: Str
     }
 }
 
+// ---------- My Apps ----------
+
+#[tauri::command]
+fn myapps_list(eng: Eng<'_>) -> Vec<myapps::MyApp> {
+    eng.my_apps.read().unwrap().clone()
+}
+
+/// One analysis per non-empty line (multi-line paste adds several entries).
+#[tauri::command]
+async fn myapps_analyze(input: String) -> Vec<myapps::Analysis> {
+    let allow_http = settings::load().allow_http;
+    let token = settings::get_secret("github_token");
+    let mut lines: Vec<String> = input.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect();
+    lines.dedup();
+    lines.truncate(25);
+    futures::future::join_all(lines.iter().map(|l| myapps::analyze(l, allow_http, token.as_deref()))).await
+}
+
+#[tauri::command]
+fn myapps_add(app: AppHandle, eng: Eng<'_>, entries: Vec<myapps::MyApp>) -> CmdResult<Vec<myapps::MyApp>> {
+    let allow_http = settings::load().allow_http;
+    eng.update_my_apps(&app, |list| {
+        for mut e in entries {
+            let taken: Vec<String> = list.iter().map(|a| a.id.clone()).collect();
+            if e.id.is_empty() || taken.contains(&e.id) {
+                e.id = myapps::new_id(&e.name, &taken);
+            }
+            if e.added_at == 0 {
+                e.added_at = myapps::now();
+            }
+            myapps::validate(&e, allow_http)?;
+            tracing::info!("my apps: added {} ({:?})", e.id, e.source);
+            list.push(e);
+        }
+        Ok(list.clone())
+    })
+    .map_err(err)
+}
+
+#[tauri::command]
+fn myapps_update(app: AppHandle, eng: Eng<'_>, entry: myapps::MyApp) -> CmdResult<()> {
+    let allow_http = settings::load().allow_http;
+    myapps::validate(&entry, allow_http).map_err(err)?;
+    eng.update_my_apps(&app, |list| {
+        let slot = list.iter_mut().find(|a| a.id == entry.id).ok_or_else(|| anyhow::anyhow!("entry not found"))?;
+        let mut e = entry;
+        if e.source != slot.source {
+            // Change link: the new file must be reviewed and signed-off again.
+            e.reviewed = matches!(e.source, myapps::MySource::Winget { .. });
+            e.allow_unsigned = false;
+            e.signature = None;
+            e.signer = None;
+            e.installer_type = None;
+            let _ = std::fs::remove_dir_all(util::cache_dir().join(&e.id));
+        }
+        *slot = e;
+        Ok(())
+    })
+    .map_err(err)
+}
+
+#[tauri::command]
+fn myapps_remove(app: AppHandle, eng: Eng<'_>, id: String) -> CmdResult<()> {
+    eng.update_my_apps(&app, |list| Ok(list.retain(|a| a.id != id))).map_err(err)
+}
+
+#[tauri::command]
+fn myapps_duplicate(app: AppHandle, eng: Eng<'_>, id: String) -> CmdResult<()> {
+    eng.update_my_apps(&app, |list| {
+        let i = list.iter().position(|a| a.id == id).ok_or_else(|| anyhow::anyhow!("entry not found"))?;
+        let mut c = list[i].clone();
+        c.id = myapps::new_id(&c.name, &list.iter().map(|a| a.id.clone()).collect::<Vec<_>>());
+        c.name = format!("{} (copy)", c.name);
+        c.detect = Default::default();
+        c.added_at = myapps::now();
+        list.insert(i + 1, c);
+        Ok(())
+    })
+    .map_err(err)
+}
+
+#[tauri::command]
+fn myapps_reorder(app: AppHandle, eng: Eng<'_>, ids: Vec<String>) -> CmdResult<()> {
+    eng.update_my_apps(&app, |list| {
+        list.sort_by_key(|a| ids.iter().position(|i| *i == a.id).unwrap_or(usize::MAX));
+        Ok(())
+    })
+    .map_err(err)
+}
+
+/// HEADs every link (and resolves GitHub "latest"); returns id → status.
+#[tauri::command]
+async fn myapps_check(eng: Eng<'_>) -> CmdResult<HashMap<String, myapps::LinkStatus>> {
+    let apps = eng.my_apps.read().unwrap().clone();
+    let allow_http = settings::load().allow_http;
+    let token = settings::get_secret("github_token");
+    let res = futures::future::join_all(apps.iter().map(|a| async { (a.id.clone(), myapps::check(a, allow_http, token.as_deref()).await) })).await;
+    Ok(res.into_iter().collect())
+}
+
+#[tauri::command]
+fn myapps_uninstall(app: AppHandle, eng: Eng<'_>, id: String) {
+    let eng = eng.inner().clone();
+    let Some(entry) = eng.my_apps.read().unwrap().iter().find(|a| a.id == id).cloned() else { return };
+    tauri::async_runtime::spawn(async move {
+        let jid = format!("uninstall:{id}");
+        let name = entry.name.clone();
+        engine::job(&app, &eng, &jid, &name, move |cancel| async move {
+            tracing::info!("my apps: uninstalling {}", entry.id);
+            Ok((myapps::uninstall(&entry, &cancel).await?, None, None))
+        })
+        .await
+    });
+}
+
+#[tauri::command]
+fn myapps_export(eng: Eng<'_>, path: String) -> CmdResult<()> {
+    let store = myapps::Store { version: myapps::SCHEMA_VERSION, apps: eng.my_apps.read().unwrap().clone() };
+    std::fs::write(&path, serde_json::to_string_pretty(&store).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+}
+
+/// Reads and validates a list for review; nothing is added until the user confirms.
+#[tauri::command]
+fn myapps_import(eng: Eng<'_>, path: String) -> CmdResult<Vec<myapps::MyApp>> {
+    let meta = std::fs::metadata(&path).map_err(|e| e.to_string())?;
+    if meta.len() > 5 << 20 {
+        return Err("file is too large to be a My Apps list".into());
+    }
+    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let s = myapps::parse_store(&text, settings::load().allow_http).map_err(err)?;
+    Ok(myapps::sanitize_import(s.apps, &eng.my_apps.read().unwrap()))
+}
+
+#[tauri::command]
+async fn myapps_fetch_url(eng: Eng<'_>, url: String) -> CmdResult<Vec<myapps::MyApp>> {
+    let allow_http = settings::load().allow_http;
+    let url = myapps::list_url(&url);
+    let u = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
+    if !(u.scheme() == "https" || (allow_http && u.scheme() == "http")) {
+        return Err("the list URL must be https".into());
+    }
+    let mut hosts = vec![u.host_str().unwrap_or("").to_string(), "googleusercontent.com".into(), "githubusercontent.com".into()];
+    hosts.push(myapps::base_domain(u.host_str().unwrap_or("")));
+    let text = util::http_opts(hosts, allow_http)
+        .get(&url)
+        .timeout(std::time::Duration::from_secs(20))
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| e.to_string())?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+    let s = myapps::parse_store(&text, allow_http).map_err(err)?;
+    let existing = eng.my_apps.read().unwrap().clone();
+    Ok(myapps::sanitize_import(s.apps, &existing))
+}
+
+/// Last log lines mentioning a job id (shown after a failed Test install).
+#[tauri::command]
+fn log_tail(id: String) -> String {
+    let dir = util::app_dir().join("logs");
+    let Some(latest) = std::fs::read_dir(&dir).ok().and_then(|d| d.flatten().max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok())) else {
+        return String::new();
+    };
+    let text = std::fs::read_to_string(latest.path()).unwrap_or_default();
+    let lines: Vec<&str> = text.lines().filter(|l| l.contains(&id)).collect();
+    lines[lines.len().saturating_sub(30)..].join("\n")
+}
+
 // ---------- AD ----------
 
 #[tauri::command]
@@ -284,7 +459,7 @@ fn ad_install(app: AppHandle, eng: Eng<'_>) {
                 if !installer::ensure_winget().await {
                     anyhow::bail!("AD needs the .NET 8 Desktop Runtime and winget is unavailable to install it");
                 }
-                installer::winget_install("Microsoft.DotNet.DesktopRuntime.8", &cancel, &|_, _| {}).await?;
+                installer::winget_install("Microsoft.DotNet.DesktopRuntime.8", "winget", &cancel, &|_, _| {}).await?;
             }
             emit(&a, ev("ad", "installing"));
             let path = ad::install(&cancel).await?;
@@ -354,6 +529,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(eng)
         .invoke_handler(tauri::generate_handler![
             bootstrap, detect_installed, reload_catalog, winget_status,
@@ -361,6 +537,8 @@ pub fn run() {
             tweak_states, tweak_apply, tweak_revert,
             gpu_info, install_nvidia,
             drive_list, drive_download,
+            myapps_list, myapps_analyze, myapps_add, myapps_update, myapps_remove, myapps_duplicate, myapps_reorder,
+            myapps_check, myapps_uninstall, myapps_export, myapps_import, myapps_fetch_url, log_tail,
             ad_state, ad_install,
             license_status, activate_key,
             save_settings, set_secret, logs_dir, export_log

@@ -214,6 +214,16 @@
       "allowed_hosts": ["github.com", "githubusercontent.com"],
       "publisher": "CrystalBit Solutions",
       "note": { "en": "Trial — enter your own license in the app.", "ru": "Пробная версия — лицензию вводите в самой программе." }
+    },
+    {
+      "id": "jonsbo", "name": "JONSBO PC Monitor", "category": "system",
+      "description": { "en": "LCD screen software for the Jonsbo TH-360", "ru": "Программа для экрана Jonsbo TH-360" },
+      "source": { "type": "scrape", "page": "https://www.jonsbo.com/en/products/TH-360--.html", "regex": "https://www\\.jonsbo\\.com/[^\"]*Upfiles/down/JONSBO PC Monitor Setup[^\"]*\\.zip" },
+      "zip": { "run": "(?i)^JONSBO PC Monitor Setup.*\\.exe$" },
+      "silent_args": ["/S"],
+      "detect": { "display_name": "^JONSBO PC Monitor" },
+      "allowed_hosts": ["jonsbo.com"],
+      "publisher": "Dongguan Hongtai Technology"
     }
   ]
 }

@@ -2,35 +2,23 @@
 //! (HEAD only above --max-mb), checks hashes/signatures, sniffs the installer type, and writes catalog-report.md.
 //! Usage: cargo run --bin verify-catalog -- [--max-mb 400] [--out ../catalog-report.md]
 
+use setup_hub_lib::installer::{detect_kind, Kind};
 use setup_hub_lib::{catalog, download, gpu, sig, util};
 use std::fmt::Write as _;
 use std::sync::atomic::AtomicBool;
 
 fn sniff(path: &std::path::Path) -> &'static str {
-    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
-    if ext == "msi" {
-        return "MSI";
-    }
-    if ext == "zip" {
-        return "ZIP";
-    }
-    if ext.starts_with("msix") || ext.starts_with("appx") {
-        return "MSIX";
-    }
-    let data = std::fs::read(path).unwrap_or_default();
-    let has = |s: &[u8]| data.windows(s.len()).any(|w| w == s);
-    if has(b"Inno Setup") {
-        "Inno Setup"
-    } else if has(b"Nullsoft") || has(b"NSIS Error") {
-        "NSIS"
-    } else if has(b"Squirrel") || has(b"SquirrelSetup") {
-        "Squirrel"
-    } else if has(b".wixburn") {
-        "WiX/Burn"
-    } else if has(b"InstallShield") {
-        "InstallShield"
-    } else {
-        "EXE (unknown)"
+    match detect_kind(path) {
+        Kind::Msi => "MSI",
+        Kind::Zip => "ZIP",
+        Kind::SevenZip => "7Z",
+        Kind::Msix => "MSIX",
+        Kind::Inno => "Inno Setup",
+        Kind::Nsis => "NSIS",
+        Kind::Squirrel => "Squirrel",
+        Kind::WixBurn => "WiX/Burn",
+        Kind::InstallShield => "InstallShield",
+        Kind::Unknown => "EXE (unknown)",
     }
 }
 

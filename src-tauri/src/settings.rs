@@ -11,6 +11,9 @@ pub struct Settings {
     pub parallel_downloads: u8,
     pub catalog_url: String,
     pub clean_driver_install: bool,
+    pub allow_http: bool,
+    /// Where My Apps is restored from after a reinstall (raw GitHub, Drive file link or any HTTPS URL).
+    pub my_apps_url: String,
 }
 
 impl Default for Settings {
@@ -23,6 +26,8 @@ impl Default for Settings {
             parallel_downloads: 3,
             catalog_url: String::new(),
             clean_driver_install: true,
+            allow_http: false,
+            my_apps_url: String::new(),
         }
     }
 }

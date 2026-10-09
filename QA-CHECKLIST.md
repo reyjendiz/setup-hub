@@ -25,6 +25,29 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] AutoLogon → extracted to `C:\Program Files\SetupHub\Tools\Autologon`, Start Menu shortcut "Sysinternals AutoLogon", tool opens; nothing is typed into it.
 - [ ] Search field and Ctrl+K palette filter apps; Enter on an app installs it; arrows move the selection; Esc closes.
 
+## My Apps
+- [ ] **+ Add** in the title bar and **My Apps** in the sidebar both open the Add sheet; nothing is read from the clipboard until **Paste** is pressed.
+- [ ] GitHub repo (`https://github.com/M2Team/NanaZip`) → preview: name, publisher, size, type, version; Add → card appears.
+- [ ] Direct link (`https://download.cdn.viber.com/desktop/windows/ViberSetup.msi`) → MSI, args `/qn /norestart`.
+- [ ] winget ID (`M2Team.NanaZip`) → publisher from winget; free text (`obs studio`) → list of matches, **Use** turns it into a preview.
+- [ ] Store ID (`9NKSQGP7F2NH`) → WhatsApp via msstore; installs.
+- [ ] Web page (`https://avamodmanager.com/`) → candidate links; page without installers → "Open page in browser".
+- [ ] Google Drive file and folder links → "Download to my files folder" → progress on the Files page.
+- [ ] Several lines at once → one result per line; **Add all (n)**.
+- [ ] Garbage text / `ftp://` → clear error with a hint. Blocked script (`https://x/a.ps1`) → refused. HTTP link → blocked with the Settings hint; after enabling "Allow plain HTTP links" it is accepted.
+- [ ] First **Install** of a direct/GitHub entry → downloads, then **Review**: signer shown; unsigned file needs the checkbox; detected type + suggested args prefilled and editable.
+- [ ] **Test** in review → "Finished — exit code 0"; a failing installer → error + log lines.
+- [ ] After install: card shows ✓ Installed with version (detected via the recorded uninstall key); context menu **Uninstall** removes it.
+- [ ] Modes: Download only → file in the Files folder + Show in Explorer; Download and extract (.zip and .7z) → folder + Start Menu shortcut; Download and run → installer window opens.
+- [ ] Edit (rename, change mode/args), Change link (re-review required), Duplicate, Remove (program stays installed).
+- [ ] Drag to reorder, and Move up/down from the menu with the keyboard; order survives restart.
+- [ ] Include in "Install all" off → Apps → Install all skips it; on → included (interactive entries run last).
+- [ ] **Check links** → broken link gets a red dot + Change link; GitHub entry with a newer release shows **Update …**.
+- [ ] Settings → Export → `my_apps.json`; Import it on a clean VM → review list shows every link/argument; entries need review again.
+- [ ] Settings → My Apps list URL (Drive file link of the export) → on a fresh install with an empty list the app offers to merge on launch; **Load now** works anytime.
+- [ ] Offline: analysis shows a network error per line; installed detection still works; nothing crashes.
+- [ ] Corrupt `my_apps.json` → app starts with an empty list and the bad file is kept as `my_apps.invalid-*.json`.
+
 ## Files
 - [ ] List loads (skeleton first) with names, sizes and type icons.
 - [ ] Download one file → ring → "Downloaded" + **Show in Explorer** opens the folder with the file selected.

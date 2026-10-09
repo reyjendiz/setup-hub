@@ -9,7 +9,7 @@ import { useT } from "../i18n";
 
 export default function Apps() {
   const { t, lang } = useT();
-  const { items, installed, search, setSearch, boot } = useApp();
+  const { items, installed, search, setSearch, boot, myApps } = useApp();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batch, setBatch] = useState<string[]>([]);
   useJobsVersion(); // re-render on any job event for the batch bar
@@ -19,12 +19,17 @@ export default function Apps() {
 
   const start = (ids: string[]) => {
     // Interactive installers go last so the silent ones finish without waiting on a click.
-    const ordered = [...ids].sort((a, b) => Number(items.find((i) => i.id === a)!.interactive) - Number(items.find((i) => i.id === b)!.interactive));
+    const interactive = (id: string) => Number(items.find((i) => i.id === id)?.interactive ?? myApps.find((m) => m.id === id)?.mode === "interactive");
+    const ordered = [...ids].sort((a, b) => interactive(a) - interactive(b));
     setBatch(ordered);
     api.install(ordered);
     setSelected(new Set());
   };
-  const notInstalled = items.filter((i) => installed[i.id] === undefined).map((i) => i.id);
+  const notInstalled = [
+    ...items.filter((i) => installed[i.id] === undefined).map((i) => i.id),
+    // My Apps entries opted into "Install all" (download-only ones aren't installs).
+    ...myApps.filter((m) => m.include_in_install_all && m.mode !== "download_only" && installed[m.id] === undefined).map((m) => m.id),
+  ];
 
   const finished = batch.filter((id) => ["done", "failed", "cancelled"].includes(getJob(id)?.phase ?? "")).length;
   const partial = batch.reduce((a, id) => {
@@ -143,11 +148,11 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
 
 function LogSheet() {
   const { t } = useT();
-  const { items } = useApp();
+  const { items, myApps } = useApp();
   const [open, setOpen] = useState(false);
   const v = useJobsVersion();
   const lines = useMemo(() => [...getLog()].reverse(), [v]);
-  const name = (id: string) => items.find((i) => i.id === id)?.name ?? id;
+  const name = (id: string) => items.find((i) => i.id === id)?.name ?? myApps.find((m) => m.id === id.replace(/^uninstall:/, ""))?.name ?? id;
   return (
     <div className="pointer-events-none fixed bottom-0 left-[220px] right-0 z-20 flex justify-center px-8 pb-4">
       <motion.div

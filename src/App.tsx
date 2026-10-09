@@ -1,13 +1,15 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AppWindow, Cpu, FolderDown, KeyRound, Minus, Search, Settings as Gear, SlidersHorizontal, Square, Sparkles, X, Copy,
+  AppWindow, Cpu, FolderDown, KeyRound, LayoutGrid, Minus, Plus, Search, Settings as Gear, SlidersHorizontal, Square, Sparkles, X, Copy,
 } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { api, Boot, Item, Settings } from "./api";
+import { api, Boot, Item, MyApp, Settings } from "./api";
 import { Button, spring } from "./components";
 import { Key, LangCtx, makeT, useT } from "./i18n";
+import { AddSheet, EntrySheet, ImportSheet } from "./myapps/sheets";
 import Apps from "./pages/Apps";
+import MyApps from "./pages/MyApps";
 import Files from "./pages/Files";
 import Tweaks from "./pages/Tweaks";
 import Drivers from "./pages/Drivers";
@@ -16,9 +18,10 @@ import Activation from "./pages/Activation";
 import SettingsPage from "./pages/Settings";
 import { listen } from "@tauri-apps/api/event";
 
-export type Page = "apps" | "files" | "tweaks" | "drivers" | "ad" | "activation" | "settings";
+export type Page = "apps" | "myapps" | "files" | "tweaks" | "drivers" | "ad" | "activation" | "settings";
 const NAV: { id: Page; icon: typeof AppWindow }[] = [
   { id: "apps", icon: AppWindow },
+  { id: "myapps", icon: LayoutGrid },
   { id: "files", icon: FolderDown },
   { id: "tweaks", icon: SlidersHorizontal },
   { id: "drivers", icon: Cpu },
@@ -38,6 +41,10 @@ interface AppCtxT {
   go: (p: Page) => void;
   search: string;
   setSearch: (s: string) => void;
+  myApps: MyApp[];
+  openAdd: (replace?: MyApp) => void;
+  openEntry: (e: MyApp, review: boolean) => void;
+  reviewImport: (entries: MyApp[], fromUrl?: boolean) => void;
 }
 const AppCtx = createContext<AppCtxT>(null!);
 export const useApp = () => useContext(AppCtx);
@@ -68,7 +75,26 @@ function Shell({ boot }: { boot: Boot }) {
   const [palette, setPalette] = useState(false);
   const [reboot, setReboot] = useState<string[]>([]);
   const [rebootDismissed, setRebootDismissed] = useState(false);
+  const [myApps, setMyApps] = useState<MyApp[]>([]);
+  const [addSheet, setAddSheet] = useState<{ replace?: MyApp } | null>(null);
+  const [entrySheet, setEntrySheet] = useState<{ id: string; review: boolean } | null>(null);
+  const [importSheet, setImportSheet] = useState<{ entries: MyApp[]; fromUrl?: boolean } | null>(null);
   const t = useMemo(() => makeT(settings.lang), [settings.lang]);
+
+  useEffect(() => {
+    api.myappsList().then((list) => {
+      setMyApps(list);
+      // After a Windows reinstall the list is empty: offer to restore it from the user's list URL.
+      if (list.length === 0 && boot.settings.my_apps_url) {
+        api.myappsFetchUrl(boot.settings.my_apps_url).then((e) => e.length && setImportSheet({ entries: e, fromUrl: true }), () => {});
+      }
+    });
+    const un = listen<MyApp[]>("myapps", ({ payload }) => {
+      setMyApps(payload);
+      api.detectInstalled().then(setInstalled, () => {});
+    });
+    return () => void un.then((f) => f());
+  }, [boot.settings.my_apps_url]);
 
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
   useEffect(() => {
@@ -112,13 +138,19 @@ function Shell({ boot }: { boot: Boot }) {
     });
   }, []);
 
-  const ctx: AppCtxT = { boot, items, setItems, settings, updateSettings, installed, refreshInstalled, go: setPage, search, setSearch };
+  const ctx: AppCtxT = {
+    boot, items, setItems, settings, updateSettings, installed, refreshInstalled, go: setPage, search, setSearch, myApps,
+    openAdd: (replace) => setAddSheet({ replace }),
+    openEntry: (e, review) => setEntrySheet({ id: e.id, review }),
+    reviewImport: (entries, fromUrl) => setImportSheet({ entries, fromUrl }),
+  };
+  const entry = entrySheet && myApps.find((a) => a.id === entrySheet.id);
 
   return (
     <LangCtx.Provider value={{ lang: settings.lang, t }}>
       <AppCtx.Provider value={ctx}>
         <div className="flex h-full flex-col">
-          <TitleBar onSearch={() => setPalette(true)} />
+          <TitleBar onSearch={() => setPalette(true)} onAdd={() => setAddSheet({})} />
           <div className="flex min-h-0 flex-1">
             <Sidebar page={page} setPage={setPage} />
             <main className="relative min-w-0 flex-1 overflow-hidden rounded-tl-xl border-l border-t border-[var(--card-border)] bg-[var(--content)]">
@@ -132,6 +164,7 @@ function Shell({ boot }: { boot: Boot }) {
                   className="scroll h-full px-8 pb-10 pt-6"
                 >
                   {page === "apps" && <Apps />}
+                  {page === "myapps" && <MyApps />}
                   {page === "files" && <Files />}
                   {page === "tweaks" && <Tweaks />}
                   {page === "drivers" && <Drivers />}
@@ -164,13 +197,16 @@ function Shell({ boot }: { boot: Boot }) {
             </main>
           </div>
           <AnimatePresence>{palette && <CommandPalette close={() => setPalette(false)} />}</AnimatePresence>
+          <AnimatePresence>{addSheet && <AddSheet key="add" replace={addSheet.replace} onClose={() => setAddSheet(null)} />}</AnimatePresence>
+          <AnimatePresence>{entry && <EntrySheet key={entry.id} entry={entry} review={entrySheet!.review} onClose={() => setEntrySheet(null)} />}</AnimatePresence>
+          <AnimatePresence>{importSheet && <ImportSheet key="import" entries={importSheet.entries} fromUrl={importSheet.fromUrl} onClose={() => setImportSheet(null)} />}</AnimatePresence>
         </div>
       </AppCtx.Provider>
     </LangCtx.Provider>
   );
 }
 
-function TitleBar({ onSearch }: { onSearch: () => void }) {
+function TitleBar({ onSearch, onAdd }: { onSearch: () => void; onAdd: () => void }) {
   const { t } = useT();
   const w = getCurrentWindow();
   const [max, setMax] = useState(false);
@@ -186,7 +222,7 @@ function TitleBar({ onSearch }: { onSearch: () => void }) {
         <img src="/app-icon.svg" alt="" className="h-[18px] w-[18px]" draggable={false} />
         Setup Hub
       </div>
-      <div data-tauri-drag-region className="flex flex-1 justify-center">
+      <div data-tauri-drag-region className="flex flex-1 items-center justify-center gap-2">
         <button
           onClick={onSearch}
           className="flex h-8 w-[min(420px,60%)] cursor-pointer items-center gap-2 rounded-lg bg-[var(--fill)] px-3 text-[13px] text-[var(--secondary)] hover:bg-[var(--fill-hover)]"
@@ -195,6 +231,9 @@ function TitleBar({ onSearch }: { onSearch: () => void }) {
           <span className="flex-1 text-left">{t("common.search")}</span>
           <kbd className="rounded bg-[var(--fill)] px-1.5 text-[11px] font-medium">Ctrl K</kbd>
         </button>
+        <Button variant="primary" className="h-8 min-w-0 px-3.5" onClick={onAdd}>
+          <Plus size={15} strokeWidth={2.5} /> {t("top.add")}
+        </Button>
       </div>
       <div className="flex h-full items-start">
         <button className={cap} onClick={() => w.minimize()} aria-label={t("titlebar.minimize")}>

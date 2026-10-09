@@ -1,23 +1,40 @@
-use crate::catalog::Item;
+use crate::catalog::{Detect, Item};
 use crate::util;
 use std::collections::HashMap;
 use winreg::enums::*;
-use winreg::RegKey;
+use winreg::{RegKey, HKEY};
 
-/// (DisplayName, DisplayVersion) for every uninstall entry: HKLM 64/32-bit and HKCU.
-pub fn uninstall_entries() -> Vec<(String, String)> {
+#[derive(Debug, Clone, Default)]
+pub struct UninstallEntry {
+    /// "HKLM\SOFTWARE\…\Uninstall\<sub>" — stable identity for My Apps detection.
+    pub key: String,
+    pub name: String,
+    pub version: String,
+    pub uninstall: String,
+    pub quiet_uninstall: String,
+}
+
+const ROOTS: [(HKEY, &str, &str); 3] = [
+    (HKEY_LOCAL_MACHINE, "HKLM", r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+    (HKEY_LOCAL_MACHINE, "HKLM", r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+    (HKEY_CURRENT_USER, "HKCU", r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+];
+
+/// Every uninstall entry that has a DisplayName: HKLM 64/32-bit and HKCU.
+pub fn uninstall_entries() -> Vec<UninstallEntry> {
     let mut v = Vec::new();
-    let roots = [
-        (HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-    ];
-    for (hive, path) in roots {
+    for (hive, label, path) in ROOTS {
         let Ok(k) = RegKey::predef(hive).open_subkey(path) else { continue };
         for name in k.enum_keys().flatten() {
             if let Ok(sub) = k.open_subkey(&name) {
                 if let Ok(dn) = sub.get_value::<String, _>("DisplayName") {
-                    v.push((dn, sub.get_value("DisplayVersion").unwrap_or_default()));
+                    v.push(UninstallEntry {
+                        key: format!(r"{label}\{path}\{name}"),
+                        name: dn,
+                        version: sub.get_value("DisplayVersion").unwrap_or_default(),
+                        uninstall: sub.get_value("UninstallString").unwrap_or_default(),
+                        quiet_uninstall: sub.get_value("QuietUninstallString").unwrap_or_default(),
+                    });
                 }
             }
         }
@@ -46,10 +63,15 @@ pub fn detect_all(items: &[Item]) -> HashMap<String, String> {
     out
 }
 
-pub fn detect_one(it: &Item, entries: &[(String, String)], appx: &[String]) -> Option<String> {
+pub fn detect_one(it: &Item, entries: &[UninstallEntry], appx: &[String]) -> Option<String> {
+    if let Some(k) = &it.detect.uninstall_key {
+        if let Some(e) = entries.iter().find(|e| e.key.eq_ignore_ascii_case(k)) {
+            return Some(e.version.clone());
+        }
+    }
     if let Some(re) = it.detect.display_name.as_deref().and_then(|r| regex::Regex::new(r).ok()) {
-        if let Some((_, ver)) = entries.iter().find(|(n, _)| re.is_match(n)) {
-            return Some(ver.clone());
+        if let Some(e) = entries.iter().find(|e| re.is_match(&e.name)) {
+            return Some(e.version.clone());
         }
     }
     if let Some(prefix) = &it.detect.appx {
@@ -65,21 +87,44 @@ pub fn detect_one(it: &Item, entries: &[(String, String)], appx: &[String]) -> O
     None
 }
 
+pub struct Snapshot {
+    keys: Vec<String>,
+    appx: Vec<String>,
+}
+
+pub fn snapshot() -> Snapshot {
+    Snapshot { keys: uninstall_entries().into_iter().map(|e| e.key).collect(), appx: appx_packages() }
+}
+
+/// What a single install added: the first new uninstall key, else the new MSIX package name.
+pub fn new_since(before: &Snapshot, entries: &[UninstallEntry], appx: &[String]) -> Option<Detect> {
+    if let Some(e) = entries.iter().find(|e| !before.keys.iter().any(|k| k.eq_ignore_ascii_case(&e.key))) {
+        return Some(Detect { uninstall_key: Some(e.key.clone()), ..Default::default() });
+    }
+    appx.iter()
+        .find(|p| !before.appx.contains(p))
+        .map(|p| Detect { appx: Some(format!("{}_", p.split('_').next().unwrap_or(p))), ..Default::default() })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::catalog::{parse, EMBEDDED};
+
+    fn e(name: &str, ver: &str) -> UninstallEntry {
+        UninstallEntry { key: format!(r"HKLM\X\{name}"), name: name.into(), version: ver.into(), ..Default::default() }
+    }
 
     #[test]
     fn detection_rules() {
         let c = parse(EMBEDDED).unwrap();
         let get = |id: &str| c.items.iter().find(|i| i.id == id).unwrap().clone();
         let entries = vec![
-            ("Zoom Workplace".to_string(), "7.1.9".to_string()),
-            ("Steam".into(), "2.10".into()),
-            ("Steam Link".into(), "1.0".into()),
-            ("Discord".into(), "1.0.9261".into()),
-            ("GIGABYTE Control Center 25.07.02.01".into(), "25.07.02.01".into()),
+            e("Zoom Workplace", "7.1.9"),
+            e("Steam", "2.10"),
+            e("Steam Link", "1.0"),
+            e("Discord", "1.0.9261"),
+            e("GIGABYTE Control Center 25.07.02.01", "25.07.02.01"),
         ];
         let appx = vec!["Claude_2.31226.0.0_x64__pzs8sxrjxfjjc".to_string()];
         assert_eq!(detect_one(&get("zoom"), &entries, &appx).unwrap(), "7.1.9");
@@ -87,5 +132,19 @@ mod tests {
         assert_eq!(detect_one(&get("gcc"), &entries, &appx).unwrap(), "25.07.02.01");
         assert_eq!(detect_one(&get("claude"), &entries, &appx).unwrap(), "2.31226.0.0");
         assert!(detect_one(&get("figma"), &entries, &appx).is_none());
+
+        let mut by_key = get("figma");
+        by_key.detect = Detect { uninstall_key: Some(r"hklm\x\Discord".into()), ..Default::default() };
+        assert_eq!(detect_one(&by_key, &entries, &appx).unwrap(), "1.0.9261");
+    }
+
+    #[test]
+    fn snapshot_diff() {
+        let before = Snapshot { keys: vec![r"HKLM\X\Steam".into()], appx: vec!["A_1_x64__h".into()] };
+        let now = vec![e("Steam", "1"), e("NewApp", "2")];
+        assert_eq!(new_since(&before, &now, &[]).unwrap().uninstall_key.unwrap(), r"HKLM\X\NewApp");
+        let appx = vec!["A_1_x64__h".to_string(), "40174MouriNaruto.NanaZip_7_x64__g".to_string()];
+        assert_eq!(new_since(&before, &[e("Steam", "1")], &appx).unwrap().appx.unwrap(), "40174MouriNaruto.NanaZip_");
+        assert!(new_since(&before, &[e("Steam", "1")], &["A_1_x64__h".into()]).is_none());
     }
 }

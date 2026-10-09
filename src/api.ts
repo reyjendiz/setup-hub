@@ -23,6 +23,8 @@ export interface Settings {
   parallel_downloads: number;
   catalog_url: string;
   clean_driver_install: boolean;
+  allow_http: boolean;
+  my_apps_url: string;
 }
 export interface Boot {
   items: Item[];
@@ -33,7 +35,45 @@ export interface Boot {
   os_build: number;
   version: string;
 }
-export type Phase = "idle" | "queued" | "resolving" | "downloading" | "verifying" | "installing" | "done" | "failed" | "cancelled";
+export type Phase = "idle" | "queued" | "resolving" | "downloading" | "verifying" | "installing" | "review" | "done" | "failed" | "cancelled";
+
+// ---- My Apps ----
+export type Mode = "silent" | "download_only" | "interactive" | "extract";
+export type MySource =
+  | { type: "url"; url: string; hosts: string[] }
+  | { type: "github"; repo: string; asset_regex: string }
+  | { type: "winget"; id: string; store: "winget" | "msstore" };
+export interface MyApp {
+  id: string;
+  name: string;
+  icon?: string | null;
+  publisher?: string | null;
+  source: MySource;
+  mode: Mode;
+  silent_args: string[];
+  detect: { display_name?: string | null; path?: string | null; appx?: string | null; uninstall_key?: string | null };
+  include_in_install_all: boolean;
+  added_at: number;
+  extract_to?: string | null;
+  shortcut?: string | null;
+  size?: number | null;
+  version?: string | null;
+  file_type?: string | null;
+  installer_type?: string | null;
+  signature?: string | null;
+  signer?: string | null;
+  reviewed: boolean;
+  allow_unsigned: boolean;
+}
+export interface WingetMatch { name: string; id: string; version: string }
+export type Analysis =
+  | { kind: "ready"; input: string; entry: MyApp }
+  | { kind: "winget_choices"; input: string; matches: WingetMatch[] }
+  | { kind: "page_links"; input: string; page: string; links: string[] }
+  | { kind: "drive"; input: string; file?: string | null; folder?: string | null; name?: string | null }
+  | { kind: "error"; input: string; message: string; hint?: string | null; open_url?: string | null };
+export const sourceLabel = (s: MySource) =>
+  s.type === "url" ? s.url : s.type === "github" ? `github.com/${s.repo}` : s.store === "msstore" ? `Microsoft Store · ${s.id}` : `winget · ${s.id}`;
 export interface Job {
   id: string;
   phase: Phase;
@@ -86,7 +126,20 @@ export const api = {
   tweakRevert: (id: string) => invoke<void>("tweak_revert", { id }),
   gpuInfo: () => invoke<GpuInfo>("gpu_info"),
   installNvidia: (clean: boolean) => invoke<void>("install_nvidia", { clean }),
-  driveList: () => invoke<DriveEntry[]>("drive_list"),
+  driveList: (folder?: string) => invoke<DriveEntry[]>("drive_list", { folder: folder ?? null }),
+  myappsList: () => invoke<MyApp[]>("myapps_list"),
+  myappsAnalyze: (input: string) => invoke<Analysis[]>("myapps_analyze", { input }),
+  myappsAdd: (entries: MyApp[]) => invoke<MyApp[]>("myapps_add", { entries }),
+  myappsUpdate: (entry: MyApp) => invoke<void>("myapps_update", { entry }),
+  myappsRemove: (id: string) => invoke<void>("myapps_remove", { id }),
+  myappsDuplicate: (id: string) => invoke<void>("myapps_duplicate", { id }),
+  myappsReorder: (ids: string[]) => invoke<void>("myapps_reorder", { ids }),
+  myappsCheck: () => invoke<Record<string, { error?: string | null; latest?: string | null }>>("myapps_check"),
+  myappsUninstall: (id: string) => invoke<void>("myapps_uninstall", { id }),
+  myappsExport: (path: string) => invoke<void>("myapps_export", { path }),
+  myappsImport: (path: string) => invoke<MyApp[]>("myapps_import", { path }),
+  myappsFetchUrl: (url: string) => invoke<MyApp[]>("myapps_fetch_url", { url }),
+  logTail: (id: string) => invoke<string>("log_tail", { id }),
   driveDownload: (files: { id: string; name: string; path: string }[], dest: string) => invoke<void>("drive_download", { files, dest }),
   adState: () => invoke<AdState>("ad_state"),
   adInstall: () => invoke<void>("ad_install"),
@@ -105,6 +158,14 @@ export interface GpuInfo { gpus: Gpu[]; nvidia_latest?: DriverInfo | null; nvidi
 export interface DriveEntry { id: string; name: string; mime: string; is_folder: boolean; size?: number | null; path: string }
 export interface AdState { installed: boolean; discord: boolean; dotnet: boolean; vencord_cli: boolean; path: string }
 export interface License { name: string; description: string; status: number; partial_key: string; grace_minutes: number }
+
+/** "1.10.0" > "1.9.1" → true. Non-numeric parts compare as 0. */
+export const isNewer = (a: string, b: string) => {
+  const p = (s: string) => s.replace(/^v/i, "").split(/[.\-_ ]/).map((x) => parseInt(x, 10) || 0);
+  const [x, y] = [p(a), p(b)];
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
+  return false;
+};
 
 export const fmtSize = (b?: number | null) => {
   if (b == null) return "—";

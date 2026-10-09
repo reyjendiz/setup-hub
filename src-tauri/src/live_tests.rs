@@ -55,6 +55,25 @@ async fn live_tweak_and_license_state() {
 
 #[tokio::test]
 #[ignore]
+async fn live_myapps_analyze() {
+    for input in [
+        "https://github.com/M2Team/NanaZip",
+        "https://download.cdn.viber.com/desktop/windows/ViberSetup.msi",
+        "M2Team.NanaZip",
+        "obs studio",
+        "9NKSQGP7F2NH",
+        "https://avamodmanager.com/",
+        "https://example.com/run.ps1",
+        "https://drive.google.com/drive/folders/1P_yy_Sw-Ca4m7sfqEmdLjpGeIPY5DZoU?usp=sharing",
+    ] {
+        let a = myapps::analyze(input, false, None).await;
+        let s = serde_json::to_string(&a).unwrap();
+        println!("{input}\n  → {}\n", &s[..s.len().min(420)]);
+    }
+}
+
+#[tokio::test]
+#[ignore]
 async fn live_unelevated_runner() {
     let code = installer::run_unelevated("cmd.exe /c exit /b 7", &std::sync::atomic::AtomicBool::new(false)).await.unwrap();
     assert_eq!(code, 7);

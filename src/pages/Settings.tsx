@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { ReactNode, useState } from "react";
 import { api } from "../api";
@@ -75,10 +75,13 @@ function SecretField({ name, initiallySet, label, hint }: { name: "github_token"
 
 export default function SettingsPage() {
   const { t } = useT();
-  const { settings: s, updateSettings, boot, setItems } = useApp();
+  const { settings: s, updateSettings, boot, setItems, reviewImport } = useApp();
   const [catalogMsg, setCatalogMsg] = useState<string | null>(null);
   const [logMsg, setLogMsg] = useState<string | null>(null);
+  const [myMsg, setMyMsg] = useState<string | null>(null);
   const [url, setUrl] = useState(s.catalog_url);
+  const [listUrl, setListUrl] = useState(s.my_apps_url);
+  const fail = (e: unknown) => setMyMsg(String(e));
 
   return (
     <div className="max-w-2xl">
@@ -125,6 +128,52 @@ export default function SettingsPage() {
       <Section title={t("settings.secrets")} note={t("settings.secretsNote")}>
         <SecretField name="github_token" initiallySet={boot.has_github_token} label={t("settings.github")} hint={t("settings.githubHint")} />
         <SecretField name="google_api_key" initiallySet={boot.has_google_key} label={t("settings.google")} hint={t("settings.googleHint")} />
+      </Section>
+
+      <Section title={t("settings.myapps")} note={myMsg ?? undefined}>
+        <Line label={t("settings.export")}>
+          <Button
+            onClick={async () => {
+              const p = await save({ defaultPath: "my_apps.json", filters: [{ name: "JSON", extensions: ["json"] }] });
+              if (p) api.myappsExport(p).then(() => setMyMsg(t("settings.myExported", { p })), fail);
+            }}
+          >
+            {t("settings.export")}
+          </Button>
+        </Line>
+        <Line label={t("settings.import")}>
+          <Button
+            onClick={async () => {
+              const p = await open({ filters: [{ name: "JSON", extensions: ["json"] }] });
+              if (typeof p === "string") api.myappsImport(p).then((e) => reviewImport(e), fail);
+            }}
+          >
+            {t("settings.import")}
+          </Button>
+        </Line>
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <label className="text-[14px]" htmlFor="listurl">{t("settings.listUrl")}</label>
+          <div className="flex gap-2">
+            <input
+              id="listurl"
+              className="field"
+              placeholder="https://drive.google.com/file/d/…/view"
+              value={listUrl}
+              onChange={(e) => setListUrl(e.target.value)}
+              onBlur={() => updateSettings({ my_apps_url: listUrl.trim() })}
+            />
+            <Button
+              disabled={!listUrl.trim()}
+              onClick={() => (updateSettings({ my_apps_url: listUrl.trim() }), api.myappsFetchUrl(listUrl.trim()).then((e) => reviewImport(e, true), fail))}
+            >
+              {t("settings.loadNow")}
+            </Button>
+          </div>
+          <p className="text-[12px] text-[var(--secondary)]">{t("settings.listUrlHint")}</p>
+        </div>
+        <Line label={t("settings.allowHttp")} hint={t("settings.allowHttpHint")}>
+          <Toggle checked={s.allow_http} onChange={(allow_http) => updateSettings({ allow_http })} label={t("settings.allowHttp")} />
+        </Line>
       </Section>
 
       <Section title={t("settings.catalog")} note={catalogMsg ?? undefined}>

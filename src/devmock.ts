@@ -6,7 +6,7 @@ import catalog from "../src-tauri/catalog.json";
 
 mockWindows("main");
 document.documentElement.classList.add("no-mica"); // a browser has no Mica behind the page
-const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true };
+const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true, allow_http: false, my_apps_url: "" };
 
 const fake = (id: string, interactive = false) => {
   let p = 0;
@@ -21,15 +21,59 @@ const fake = (id: string, interactive = false) => {
   }, 250);
 };
 
+const base = { detect: {}, include_in_install_all: true, added_at: 0, reviewed: false, allow_unsigned: false, silent_args: [] as string[], mode: "silent" };
+let myApps: any[] = [
+  { ...base, id: "my-viber", name: "Viber", publisher: "viber.com", source: { type: "url", url: "https://download.cdn.viber.com/desktop/windows/ViberSetup.msi", hosts: [] }, silent_args: ["/qn", "/norestart"], file_type: "msi", size: 149270528 },
+  { ...base, id: "my-nanazip", name: "NanaZip", publisher: "M2Team", icon: "https://github.com/M2Team.png?size=96", source: { type: "github", repo: "M2Team/NanaZip", asset_regex: "^NanaZip_[0-9][0-9._]*\\.msixbundle$" }, file_type: "msixbundle", version: "7.0.1843.0" },
+  { ...base, id: "my-tool", name: "Portable Tool", publisher: "example.com", source: { type: "url", url: "https://example.com/tool.zip", hosts: [] }, mode: "extract", extract_to: "%LOCALAPPDATA%\\Programs\\Portable Tool", include_in_install_all: false, installer_type: "zip", signature: "Archive" },
+  { ...base, id: "my-unsigned", name: "Unsigned App", publisher: "example.org", source: { type: "url", url: "https://example.org/app-setup.exe", hosts: [] }, installer_type: "nsis", signature: "NotSigned", silent_args: ["/S"] },
+];
+const pushMy = () => emit("myapps", myApps);
+
 mockIPC(
   (cmd, args: any) => {
     switch (cmd) {
+      case "myapps_list":
+        return myApps;
+      case "myapps_analyze":
+        return [
+          { kind: "ready", input: "https://github.com/M2Team/NanaZip", entry: { ...base, id: "", name: "NanaZip", publisher: "M2Team", icon: "https://github.com/M2Team.png?size=96", source: { type: "github", repo: "M2Team/NanaZip", asset_regex: "x" }, file_type: "msixbundle", size: 11931446, version: "7.0.1843.0" } },
+          { kind: "winget_choices", input: "obs studio", matches: [{ name: "OBS Studio", id: "OBSProject.OBSStudio", version: "32.2.2" }, { name: "OBS Studio Beta", id: "OBSProject.OBSStudio.Pre-release", version: "32.0.0-rc1" }] },
+          { kind: "error", input: "https://example.com/run.ps1", message: "Scripts (.bat, .cmd, .ps1, .vbs, .js, .hta, .reg) are never run from links", hint: "Download it yourself and inspect it before running" },
+        ].slice(0, args.input.split("\n").filter((l: string) => l.trim()).length || 1);
+      case "myapps_add":
+        myApps = [...myApps, ...args.entries.map((e: any, i: number) => ({ ...e, id: e.id || `my-new-${myApps.length + i}` }))];
+        pushMy();
+        return myApps;
+      case "myapps_update":
+        myApps = myApps.map((a) => (a.id === args.entry.id ? args.entry : a));
+        pushMy();
+        return;
+      case "myapps_remove":
+        myApps = myApps.filter((a) => a.id !== args.id);
+        pushMy();
+        return;
+      case "myapps_reorder":
+        myApps = args.ids.map((id: string) => myApps.find((a) => a.id === id));
+        pushMy();
+        return;
+      case "myapps_check":
+        return { "my-viber": {}, "my-nanazip": { latest: "7.1.0.0" }, "my-tool": { error: "HTTP status 404 Not Found" } };
+      case "myapps_import":
+      case "myapps_fetch_url":
+        return myApps.slice(0, 2).map((a) => ({ ...a, id: a.id + "-imp" }));
       case "bootstrap":
         return { items: catalog.items, catalog_origin: "embedded", settings, has_github_token: false, has_google_key: false, os_build: 26300, version: "1.0.0-dev" };
       case "detect_installed":
-        return { zoom: "7.1.9", steam: "2.10.91.91", discord: "1.0.9261", claude: "2.31226.0.0" };
+        return { zoom: "7.1.9", steam: "2.10.91.91", discord: "1.0.9261", claude: "2.31226.0.0", "my-nanazip": "7.0.1843.0" };
       case "install":
-        args.ids.forEach((id: string) => (emit("job", { id, phase: "queued" }), setTimeout(() => fake(id, catalog.items.find((i) => i.id === id)?.interactive), 300)));
+        args.ids.forEach((id: string) => {
+          emit("job", { id, phase: "queued" });
+          const m = myApps.find((a) => a.id === id);
+          // My Apps: the first download stops at "review".
+          if (m && !m.reviewed) setTimeout(() => emit("job", { id, phase: "review" }), 900);
+          else setTimeout(() => fake(id, catalog.items.find((i) => i.id === id)?.interactive), 300);
+        });
         return;
       case "reboot_pending":
         return ["NordVPN"];
