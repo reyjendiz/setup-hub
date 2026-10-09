@@ -66,7 +66,7 @@ mockIPC(
       case "bootstrap":
         return { items: catalog.items, catalog_origin: "embedded", settings, has_github_token: false, has_google_key: false, os_build: 26300, version: "1.0.0-dev" };
       case "detect_installed":
-        return { zoom: "7.1.9", steam: "2.10.91.91", discord: "1.0.9261", claude: "2.31226.0.0", "my-nanazip": "7.0.1843.0" };
+        return { zoom: "7.1.9", steam: "2.10.91.91", discord: "1.0.9261", whatsapp: "2.2540.6.0", "my-nanazip": "7.0.1843.0" };
       case "install":
         args.ids.forEach((id: string) => {
           emit("job", { id, phase: "queued" });

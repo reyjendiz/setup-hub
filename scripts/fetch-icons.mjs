@@ -17,7 +17,6 @@ const SOURCES = {
   gcc: [null, "gigabyte.com"],
   astrum: ["https://astrum-play.ru/hotbox/favicon/favicon-96x96.png", "astrum-play.ru"],
   autologon: [null, "learn.microsoft.com"],
-  claude: ["https://claude.ai/apple-touch-icon.png", "claude.ai"],
   ava: ["https://avamodmanager.com/assets/img/apple-touch-icon.png", "avamodmanager.com"],
   compresso: ["https://github.com/codeforreal1.png?size=128", "compresso.codeforreal.com"],
   autopara: ["https://github.com/sevcenkoa864-oss.png?size=128", "github.com"],

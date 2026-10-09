@@ -296,15 +296,6 @@
       "publisher": "Microsoft"
     },
     {
-      "id": "claude", "name": "Claude", "category": "productivity",
-      "description": { "en": "Anthropic's desktop app", "ru": "Десктоп-приложение Anthropic" },
-      "winget_id": "Anthropic.Claude",
-      "source": { "type": "winget" },
-      "silent_args": [],
-      "detect": { "appx": "Claude_", "display_name": "^Claude$" },
-      "allowed_hosts": []
-    },
-    {
       "id": "ava", "name": "AVA Mod Manager", "category": "gaming",
       "description": { "en": "Game mod manager", "ru": "Менеджер модов для игр" },
       "source": { "type": "scrape", "page": "https://avamodmanager.com/", "regex": "https://avamodmanager\\.com/downloads/AVAModManager-v[0-9.]+-setup\\.exe" },
@@ -645,7 +636,7 @@
     },
     {
       "id": "git", "name": "Git", "category": "dev",
-      "description": { "en": "Version control — Claude Code needs Git for Windows", "ru": "Контроль версий — нужен Claude Code (Git for Windows)" },
+      "description": { "en": "Version control: Git for Windows with Git Bash", "ru": "Контроль версий: Git for Windows с Git Bash" },
       "winget_id": "Git.Git",
       "source": { "type": "github_release", "repo": "git-for-windows/git", "asset_regex": "^Git-[0-9.]+-64-bit\\.exe$" },
       "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES", "/SP-"],
@@ -655,7 +646,7 @@
     },
     {
       "id": "nodejs", "name": "Node.js LTS", "category": "dev",
-      "description": { "en": "JavaScript runtime with npm — for Claude Code and MCP servers", "ru": "JavaScript и npm — для Claude Code и MCP-серверов" },
+      "description": { "en": "JavaScript runtime with npm — for dev tools and MCP servers", "ru": "JavaScript и npm — для инструментов разработки и MCP-серверов" },
       "winget_id": "OpenJS.NodeJS.LTS",
       "source": { "type": "winget" },
       "silent_args": [],
@@ -664,7 +655,7 @@
     },
     {
       "id": "python", "name": "Python 3.14", "category": "dev",
-      "description": { "en": "Python, added to PATH — for Claude Code's scripts and tools", "ru": "Python с добавлением в PATH — для скриптов и инструментов Claude Code" },
+      "description": { "en": "Python, added to PATH — for scripts and dev tools", "ru": "Python с добавлением в PATH — для скриптов и инструментов разработки" },
       "winget_id": "Python.Python.3.14",
       "source": { "type": "winget" },
       "silent_args": [],
