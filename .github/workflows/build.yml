@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: cargo test --lib
+        working-directory: src-tauri
+
+      - name: Build (portable exe + NSIS installer)
+        run: pnpm tauri build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SetupHub
+          path: |
+            src-tauri/target/release/setup-hub.exe
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

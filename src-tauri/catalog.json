@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "zoom", "name": "Zoom", "category": "communication",
+      "description": { "en": "Video meetings and chat", "ru": "Видеовстречи и чат" },
+      "winget_id": "Zoom.Zoom",
+      "source": { "type": "direct", "url": "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^Zoom" },
+      "allowed_hosts": ["zoom.us"],
+      "publisher": "Zoom"
+    },
+    {
+      "id": "steam", "name": "Steam", "category": "gaming",
+      "description": { "en": "Valve's game store and launcher", "ru": "Магазин и лаунчер игр от Valve" },
+      "winget_id": "Valve.Steam",
+      "source": { "type": "direct", "url": "https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe" },
+      "silent_args": ["/S"],
+      "detect": { "display_name": "^Steam$" },
+      "allowed_hosts": ["steamstatic.com"],
+      "publisher": "Valve"
+    },
+    {
+      "id": "telegram", "name": "Telegram Desktop", "category": "communication",
+      "description": { "en": "Fast, secure messenger", "ru": "Быстрый и защищённый мессенджер" },
+      "winget_id": "Telegram.TelegramDesktop",
+      "source": { "type": "direct", "url": "https://telegram.org/dl/desktop/win64" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^Telegram Desktop" },
+      "allowed_hosts": ["telegram.org"],
+      "publisher": "Telegram"
+    },
+    {
+      "id": "capcut", "name": "CapCut", "category": "creative",
+      "description": { "en": "Video editor by ByteDance", "ru": "Видеоредактор от ByteDance" },
+      "winget_id": "ByteDance.CapCut",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^CapCut$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "gearup", "name": "GearUP Booster", "category": "gaming",
+      "description": { "en": "Game network accelerator", "ru": "Ускоритель сети для игр" },
+      "source": { "type": "scrape", "page": "https://www.gearupbooster.com/js/dl.js?callback=getDlUrl", "regex": "https://download\\.booster\\.gearupportal\\.com/[^'\"\\s]+\\.exe" },
+      "silent_args": [],
+      "detect": { "display_name": "^GearUP" },
+      "allowed_hosts": ["gearupbooster.com", "gearupportal.com"],
+      "publisher": "GearUP",
+      "interactive": true,
+      "note": { "en": "Custom installer without a documented silent mode — its window opens for you.", "ru": "Собственный установщик без тихого режима — откроется его окно." }
+    },
+    {
+      "id": "nordvpn", "name": "NordVPN", "category": "network",
+      "description": { "en": "VPN client (installs a network driver)", "ru": "VPN-клиент (ставит сетевой драйвер)" },
+      "winget_id": "NordSecurity.NordVPN",
+      "source": { "type": "direct", "url": "https://downloads.nordcdn.com/apps/windows/NordVPN/latest/NordVPNSetup.exe" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^NordVPN$" },
+      "allowed_hosts": ["nordcdn.com"],
+      "publisher": "nordvpn",
+      "needs_reboot": true
+    },
+    {
+      "id": "discord", "name": "Discord", "category": "communication",
+      "description": { "en": "Voice, video and text chat", "ru": "Голосовой, видео- и текстовый чат" },
+      "winget_id": "Discord.Discord",
+      "source": { "type": "direct", "url": "https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64" },
+      "silent_args": ["-s"],
+      "detect": { "display_name": "^Discord$" },
+      "allowed_hosts": ["discord.com", "discordapp.net"],
+      "publisher": "Discord"
+    },
+    {
+      "id": "figma", "name": "Figma", "category": "creative",
+      "description": { "en": "Collaborative interface design", "ru": "Совместный дизайн интерфейсов" },
+      "winget_id": "Figma.Figma",
+      "source": { "type": "direct", "url": "https://desktop.figma.com/win/FigmaSetup.exe" },
+      "silent_args": ["-s"],
+      "detect": { "display_name": "^Figma$" },
+      "allowed_hosts": ["figma.com"],
+      "publisher": "Figma"
+    },
+    {
+      "id": "spotify", "name": "Spotify", "category": "media",
+      "description": { "en": "Music streaming (installed without admin rights)", "ru": "Музыка (ставится без прав администратора)" },
+      "winget_id": "Spotify.Spotify",
+      "source": { "type": "direct", "url": "https://download.scdn.co/SpotifySetup.exe" },
+      "silent_args": ["/silent"],
+      "detect": { "display_name": "^Spotify$" },
+      "allowed_hosts": ["scdn.co"],
+      "publisher": "Spotify",
+      "unelevated": true
+    },
+    {
+      "id": "gcc", "name": "GIGABYTE Control Center", "category": "system",
+      "description": { "en": "Motherboard, RGB and fan control", "ru": "Управление платой, подсветкой и вентиляторами" },
+      "source": { "type": "direct", "url": "https://download.gigabyte.com/FileList/Utility/GCC_26.09.10.01.zip" },
+      "zip": { "run": "(?i)setup.*\\.exe$" },
+      "silent_args": [],
+      "detect": { "display_name": "^GIGABYTE Control Center" },
+      "allowed_hosts": ["gigabyte.com"],
+      "publisher": "GIGA-BYTE",
+      "interactive": true,
+      "note": { "en": "No documented silent mode — the setup window opens for you to click through. ~900 MB.", "ru": "Тихой установки нет — откроется окно установщика. ~900 МБ." }
+    },
+    {
+      "id": "astrum", "name": "Astrum Play", "category": "gaming",
+      "description": { "en": "Astrum Entertainment game launcher", "ru": "Игровой лаунчер Astrum Entertainment" },
+      "source": { "type": "direct", "url": "https://astrum-play.ru/loader/AstrumPlayLoader.exe" },
+      "silent_args": [],
+      "detect": { "display_name": "^Astrum Play" },
+      "allowed_hosts": ["astrum-play.ru"],
+      "interactive": true,
+      "note": { "en": "Web loader without a silent mode — it opens its own window.", "ru": "Веб-загрузчик без тихого режима — откроется его окно." }
+    },
+    {
+      "id": "autologon", "name": "Sysinternals AutoLogon", "category": "system",
+      "description": { "en": "Sign in automatically at boot (you enter the password)", "ru": "Автовход при загрузке (пароль вводите вы)" },
+      "source": { "type": "direct", "url": "https://download.sysinternals.com/files/AutoLogon.zip" },
+      "zip": { "extract_to": "%ProgramFiles%\\SetupHub\\Tools\\Autologon", "shortcut": "Autologon64.exe", "launch": true },
+      "silent_args": [],
+      "detect": { "path": "%ProgramFiles%\\SetupHub\\Tools\\Autologon\\Autologon64.exe" },
+      "allowed_hosts": ["sysinternals.com"],
+      "publisher": "Microsoft"
+    },
+    {
+      "id": "claude", "name": "Claude", "category": "productivity",
+      "description": { "en": "Anthropic's desktop app", "ru": "Десктоп-приложение Anthropic" },
+      "winget_id": "Anthropic.Claude",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "appx": "Claude_", "display_name": "^Claude$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "ava", "name": "AVA Mod Manager", "category": "gaming",
+      "description": { "en": "Game mod manager", "ru": "Менеджер модов для игр" },
+      "source": { "type": "scrape", "page": "https://avamodmanager.com/", "regex": "https://avamodmanager\\.com/downloads/AVAModManager-v[0-9.]+-setup\\.exe" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^AVA Mod Manager" },
+      "allowed_hosts": ["avamodmanager.com"]
+    },
+    {
+      "id": "compresso", "name": "CompressO", "category": "creative",
+      "description": { "en": "Shrink videos and images", "ru": "Сжатие видео и изображений" },
+      "source": { "type": "github_release", "repo": "codeforreal1/compressO", "asset_regex": "_x64\\.exe$" },
+      "silent_args": ["/S"],
+      "detect": { "display_name": "^CompressO" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "autopara", "name": "AutoPara", "category": "productivity",
+      "description": { "en": "Opens each class's Zoom/Meet link on time", "ru": "Открывает ссылки на пары по расписанию" },
+      "source": { "type": "github_release", "repo": "sevcenkoa864-oss/AutoPara", "asset_regex": "-Setup\\.exe$" },
+      "silent_args": ["/S"],
+      "detect": { "display_name": "^AutoPara" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "pdfcraft", "name": "PDFCraft", "category": "productivity",
+      "description": { "en": "Open-source PDF editor (Rust)", "ru": "Открытый PDF-редактор на Rust" },
+      "source": { "type": "github_release", "repo": "storytold/pdfcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^pdf ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "qbittorrent", "name": "qBittorrent", "category": "network",
+      "description": { "en": "Open-source torrent client", "ru": "Открытый торрент-клиент" },
+      "winget_id": "qBittorrent.qBittorrent",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^qBittorrent" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "nanazip", "name": "NanaZip", "category": "system",
+      "description": { "en": "Modern 7-Zip for the Windows 11 context menu", "ru": "Современный 7-Zip с меню Windows 11" },
+      "winget_id": "M2Team.NanaZip",
+      "source": { "type": "github_release", "repo": "M2Team/NanaZip", "asset_regex": "^NanaZip_[0-9.]+\\.msixbundle$" },
+      "silent_args": [],
+      "detect": { "appx": "40174MouriNaruto.NanaZip_" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "onlyoffice", "name": "ONLYOFFICE", "category": "productivity",
+      "description": { "en": "Free office suite: documents, sheets, slides, PDF", "ru": "Бесплатный офис: документы, таблицы, презентации, PDF" },
+      "winget_id": "ONLYOFFICE.DesktopEditors",
+      "source": { "type": "github_release", "repo": "ONLYOFFICE/DesktopEditors", "asset_regex": "^DesktopEditors_x64\\.exe$" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^ONLYOFFICE" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"],
+      "publisher": "Ascensio"
+    },
+    {
+      "id": "viber", "name": "Viber", "category": "communication",
+      "description": { "en": "Messenger and free calls", "ru": "Мессенджер и бесплатные звонки" },
+      "winget_id": "Rakuten.Viber",
+      "source": { "type": "direct", "url": "https://download.cdn.viber.com/desktop/windows/ViberSetup.msi" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^Viber$" },
+      "allowed_hosts": ["viber.com"],
+      "publisher": "Viber"
+    },
+    {
+      "id": "uninstalltool", "name": "Uninstall Tool", "category": "system",
+      "description": { "en": "Removes apps with all their leftovers", "ru": "Удаляет программы вместе с остатками" },
+      "winget_id": "CrystalIDEASoftware.UninstallTool",
+      "source": { "type": "github_release", "repo": "crystalidea/uninstall-tool", "asset_regex": "^uninstalltool_setup\\.exe$" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^Uninstall Tool" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"],
+      "publisher": "CrystalBit Solutions",
+      "note": { "en": "Trial — enter your own license in the app.", "ru": "Пробная версия — лицензию вводите в самой программе." }
+    }
+  ]
+}
