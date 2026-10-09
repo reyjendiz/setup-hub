@@ -1,6 +1,7 @@
 pub mod activation;
 pub mod ad;
 pub mod catalog;
+pub mod defaults;
 pub mod detect;
 pub mod download;
 pub mod drive;
@@ -142,6 +143,42 @@ async fn tweak_apply(id: String) -> CmdResult<()> {
 #[tauri::command]
 async fn tweak_revert(id: String) -> CmdResult<()> {
     tweaks::revert(&id).await.map_err(err)
+}
+
+// ---------- default apps ----------
+
+#[tauri::command]
+async fn defaults_states(eng: Eng<'_>) -> CmdResult<Vec<defaults::DefaultState>> {
+    let items = eng.catalog.read().unwrap().items.clone();
+    let build = gpu::windows_build().await;
+    tokio::task::spawn_blocking(move || defaults::states(&items, build)).await.map_err(|e| e.to_string())
+}
+
+/// `id` is "<item id>:<kind>" as returned by defaults_states.
+fn default_target(eng: &Engine, id: &str) -> CmdResult<(catalog::Item, String)> {
+    let (item, kind) = id.split_once(':').ok_or("bad default id")?;
+    let it = eng.catalog.read().unwrap().items.iter().find(|i| i.id == item).cloned().ok_or("unknown app")?;
+    Ok((it, kind.to_string()))
+}
+
+#[tauri::command]
+fn defaults_apply(eng: Eng<'_>, id: String) -> CmdResult<defaults::Applied> {
+    let (it, kind) = default_target(&eng, &id)?;
+    defaults::apply(&it, &kind).map_err(err)
+}
+
+#[tauri::command]
+fn defaults_revert(eng: Eng<'_>, id: String) -> CmdResult<()> {
+    let (it, kind) = default_target(&eng, &id)?;
+    defaults::revert(&it, &kind).map_err(err)
+}
+
+/// Settings page for a card's install-time message ("Open Settings" when it couldn't be automated).
+#[tauri::command]
+async fn defaults_settings_uri(eng: Eng<'_>, id: String) -> CmdResult<String> {
+    let (it, kind) = default_target(&eng, &id)?;
+    let d = it.defaults.ok_or("no defaults")?;
+    Ok(defaults::settings_uri(&d, &kind, gpu::windows_build().await))
 }
 
 // ---------- GPU ----------
@@ -535,6 +572,7 @@ pub fn run() {
             bootstrap, detect_installed, reload_catalog, winget_status,
             install, cancel, reboot_pending, restart_now,
             tweak_states, tweak_apply, tweak_revert,
+            defaults_states, defaults_apply, defaults_revert, defaults_settings_uri,
             gpu_info, install_nvidia,
             drive_list, drive_download,
             myapps_list, myapps_analyze, myapps_add, myapps_update, myapps_remove, myapps_duplicate, myapps_reorder,

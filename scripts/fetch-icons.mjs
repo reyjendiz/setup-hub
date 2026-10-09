@@ -27,6 +27,8 @@ const SOURCES = {
   viber: [null, "viber.com"],
   uninstalltool: [null, "crystalidea.com"],
   jonsbo: [null, "jonsbo.com"],
+  vlc: ["https://raw.githubusercontent.com/videolan/vlc/3.0.x/share/icons/128x128/vlc.png", "videolan.org"],
+  lightshot: [null, "app.prntscr.com"],
 };
 const only = process.argv.slice(2);
 

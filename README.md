@@ -6,10 +6,10 @@
 
 One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
 
-- **Apps** — silent install of 23 apps (winget first, signed vendor installer as fallback), "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection.
+- **Apps** — silent install of 25 apps (winget first, signed vendor installer as fallback), "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection.
 - **My Apps** — add any program yourself by pasting a link (GitHub repo, direct file, winget ID, Microsoft Store, web page); it then installs with one click like the built-in apps.
 - **Files** — list and download the shared Google Drive folder (no sign-in), nested folders, resume. Nothing is run or extracted.
-- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup. Each one reverts.
+- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a Windows function (VLC for media files, Lightshot on Print Screen). Each one reverts.
 - **Drivers** — latest WHQL Game Ready driver for the detected NVIDIA GPU (NVIDIA App fallback); AMD/Intel get their official pages.
 - **AD** — installs your Vencord launcher (bundled in the exe).
 - **Activation** — license status, *Open Activation settings*, *Enter my own key*. No KMS, no third-party keys.
@@ -58,9 +58,24 @@ Exit codes 3010/1641 (and winget's "reboot required") collect into one *Restart 
 
 `src-tauri/catalog.json` is embedded. Set *Settings → Custom catalog URL* to a raw GitHub URL of your own copy to update links without rebuilding; the last good remote copy is cached and the embedded one is the offline fallback. A remote catalog is validated the same way (https only, URL host must be in that item's `allowed_hosts`).
 
-Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?`.
+Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?, defaults?{app?, types[], print_screen, start?}`.
 
 See **[catalog-report.md](catalog-report.md)** for the verified URL, version, installer type, signer and silent switches of every item.
+
+## Default apps
+
+Catalog apps that replace a built-in Windows function are made the default as part of their install, and get a card under **Tweaks → Default apps** (state, **Apply**, **Revert**, **Open Settings**):
+
+| App | Replaces | How |
+|---|---|---|
+| VLC media player | Media Player for 114 video, audio and playlist types | Windows' *default associations configuration* policy |
+| Lightshot | Snipping Tool on the Print Screen key | `PrintScreenKeyForSnippingEnabled` = 0, then Lightshot is started as the signed-in user |
+
+**File types.** Windows protects each user's choice (UserChoice / UserChoiceLatest) with a hash that only Windows may write, so Setup Hub doesn't forge it. Instead it reads the ProgIds VLC registered (`RegisteredApplications\VLC` → `Capabilities\FileAssociations`, e.g. `.mkv` → `VLC.mkv`), writes them to `%ProgramData%\SetupHub\DefaultAssociations.xml` and points `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` at it. Windows applies it at the **next sign-in**. Every association is `Suggested="true"`, so on Windows 11 22H2+ it's applied once per `Version` (bumped on each Apply) and you can still pick another app later; Windows 10 re-applies it at every sign-in until you Revert. Only types VLC itself registered and the catalog lists are used — VLC also registers `.iso`, `.zip`, `.rar` and skin files, which it doesn't get. Revert removes VLC from the file (and the policy when it's empty); files keep opening in VLC until you choose another app. An associations policy configured by someone else is never overwritten — the card then offers Settings instead. Microsoft documents the policy for Pro/Enterprise/Education; on Home the card says it may be ignored and offers **Open Settings** (`ms-settings:defaultapps?registeredAppMachine=VLC`, VLC's own page on Windows 11).
+
+**Print Screen.** On Windows 11 the key opens Snipping Tool by default and never reaches Lightshot. The previous value is saved and restored on Revert (an absent value is deleted again). If Snipping Tool still opens, signing out and back in finishes it.
+
+Catalog schema: `defaults.app` (RegisteredApplications name), `defaults.types` (extensions; executables, scripts, `.lnk`, `.url`, `.htm(l)` are rejected even from a remote catalog), `defaults.print_screen`, `defaults.start` (a bare `.exe` name in the install folder). My Apps entries can't carry defaults.
 
 ## My Apps (add programs by link)
 
@@ -99,6 +114,8 @@ Runtime-only safety flags (`custom`, `reviewed`, `allow_unsigned`, `allow_http`)
 - **GIGABYTE Control Center**: gigabyte.com's lookup API is behind bot protection, so the catalog pins the current `GCC_26.09.10.01.zip` on `download.gigabyte.com`; update it via the remote catalog. Its setup has no documented silent switch, so it opens for you (*Needs your clicks*). ~900 MB.
 - **GearUP Booster** ships a custom 7-Zip SFX installer with no documented silent switch — *Needs your clicks*.
 - **JONSBO PC Monitor** (Jonsbo TH-360 LCD) is resolved from the TH-360 product page on jonsbo.com, so new versions are picked up automatically; the zip's NSIS setup must be signed by Dongguan Hongtai Technology (JONSBO's company) and runs with `/S`.
+- **VLC media player** installs through winget only (`VideoLAN.VLC`): download.videolan.org redirects to ~70 third-party mirrors, which a per-item host allow-list can't cover.
+- **Lightshot** installs through winget (`Skillbrains.Lightshot`), falling back to the vendor's `app.prntscr.com/build/setup-lightshot.exe` (Inno Setup, `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-`), whose signature must name Skillbrains.
 - **Astrum Play** is a web loader (`astrum-play.ru/loader/AstrumPlayLoader.exe`) with no silent mode — also *Needs your clicks*.
 - **PDFCraft** (`storytold/pdfcraft`) is a real desktop app with a signed Windows MSI and published SHA-256s, so it installs like the others.
 - **AutoLogon** is extracted to `%ProgramFiles%\SetupHub\Tools\Autologon` with a Start Menu shortcut and launched; Setup Hub never types credentials.
@@ -129,6 +146,7 @@ src-tauri/src/
   download.rs  sig.rs    resumable downloads, SHA-256 + Authenticode policy
   installer.rs           winget, installers, de-elevation, unzip
   detect.rs              installed-state detection
+  defaults.rs            default apps: associations policy XML, Print Screen key
   tweaks.rs gpu.rs drive.rs ad.rs activation.rs settings.rs util.rs
   bin/verify_catalog.rs  build-time link verification → catalog-report.md
 QA-CHECKLIST.md          manual test plan for a clean Windows 11 VM

@@ -21,7 +21,7 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] NordVPN (needs reboot) → restart banner appears at the end; **Later** hides it, **Restart now** restarts in 5 s.
 - [ ] Force a failure (disconnect the network mid-download) → red **Retry** + **Details** with the error; reconnect → Retry resumes the partial download.
 - [ ] Offline launch → app opens; catalog origin says "embedded"; installs fail with a clear network error, no crash.
-- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, Claude, qBittorrent) fail with "winget is not available…".
+- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, Claude, qBittorrent, VLC) fail with "winget is not available…".
 - [ ] AutoLogon → extracted to `C:\Program Files\SetupHub\Tools\Autologon`, Start Menu shortcut "Sysinternals AutoLogon", tool opens; nothing is typed into it.
 - [ ] Search field and Ctrl+K palette filter apps; Enter on an app installs it; arrows move the selection; Esc closes.
 
@@ -61,6 +61,18 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Power → Apply → `powercfg /getactivescheme` = High performance; display/sleep/hibernate "Never". Revert → previous plan & timeouts.
 - [ ] Hibernation / Fast Startup toggles apply and revert; `powercfg /a` reflects the change.
 - [ ] Re-applying a tweak twice and then reverting restores the *original* values (snapshot isn't overwritten).
+
+## Default apps
+- [ ] Install **VLC** → card says "Set as the default app — Windows applies it at your next sign-in". `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` = `C:\ProgramData\SetupHub\DefaultAssociations.xml`; the XML lists `VLC.mp4` etc. with `Suggested="true"` and no `.iso`/`.zip`/`.rar`.
+- [ ] Tweaks → Default apps → VLC shows "Applies at your next sign-in". Sign out and in → double-clicking an .mp4, .mkv and .mp3 opens VLC; the card shows ✓ Applied, "114 of 114 file types".
+- [ ] Windows 11: pick Media Player for .mp4 in Settings, sign out and in → it stays Media Player (Suggested = applied once). **Apply** again → VLC again after the next sign-in.
+- [ ] **Revert** → policy value and XML are gone; .mp4 still opens VLC until changed; the card shows **Apply** again.
+- [ ] **Open Settings** opens Settings › Default apps › VLC media player.
+- [ ] Set `DefaultAssociationsConfiguration` to another path first → installing VLC leaves it untouched and the card offers Open Settings.
+- [ ] Windows 11 Home VM: card shows the Home warning; check whether VLC became default after sign-in and note the result here.
+- [ ] Install **Lightshot** → no third-party offers installed (check Apps & features); Lightshot is running in the tray as the signed-in user (not elevated); `HKCU\Control Panel\Keyboard\PrintScreenKeyForSnippingEnabled` = 0; Settings › Accessibility › Keyboard shows the Print Screen toggle off.
+- [ ] Press **PrtScn** → Lightshot's area selection opens, not Snipping Tool (sign out and in if Snipping Tool still opens). After a restart Lightshot starts by itself and PrtScn still works.
+- [ ] Tweaks → Print Screen opens Lightshot → **Revert** → the toggle is back to its previous state; PrtScn opens Snipping Tool again.
 
 ## Drivers
 - [ ] RTX card detected with installed version in NVIDIA format (e.g. 617.42).

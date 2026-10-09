@@ -71,6 +71,7 @@ pub async fn fetch_vencord_cli(cancel: &AtomicBool) -> Result<()> {
         note: None,
         mode: Default::default(),
         winget_source: None,
+        defaults: None,
         custom: false,
         reviewed: false,
         allow_unsigned: false,

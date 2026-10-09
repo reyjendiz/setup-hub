@@ -14,6 +14,7 @@ export interface Item {
   unelevated: boolean;
   needs_reboot: boolean;
   note?: I18n | null;
+  defaults?: { app?: string | null; types: string[]; print_screen: boolean; start?: string | null } | null;
 }
 export interface Settings {
   lang: "en" | "ru";
@@ -124,6 +125,10 @@ export const api = {
   tweakStates: () => invoke<TweakState[]>("tweak_states"),
   tweakApply: (id: string) => invoke<void>("tweak_apply", { id }),
   tweakRevert: (id: string) => invoke<void>("tweak_revert", { id }),
+  defaultsStates: () => invoke<DefaultState[]>("defaults_states"),
+  defaultsApply: (id: string) => invoke<"next_sign_in" | "next_sign_in_home" | "use_settings" | "now">("defaults_apply", { id }),
+  defaultsRevert: (id: string) => invoke<void>("defaults_revert", { id }),
+  defaultsSettingsUri: (id: string) => invoke<string>("defaults_settings_uri", { id }),
   gpuInfo: () => invoke<GpuInfo>("gpu_info"),
   installNvidia: (clean: boolean) => invoke<void>("install_nvidia", { clean }),
   driveList: (folder?: string) => invoke<DriveEntry[]>("drive_list", { folder: folder ?? null }),
@@ -151,6 +156,19 @@ export const api = {
   exportLog: () => invoke<string>("export_log"),
 };
 
+/** id is "<item id>:types" or "<item id>:print_screen". */
+export interface DefaultState {
+  id: string;
+  name: string;
+  kind: "types" | "print_screen";
+  installed: boolean;
+  applied: boolean;
+  pending: boolean;
+  can_revert: boolean;
+  detail: string;
+  home: boolean;
+  settings_uri: string;
+}
 export interface TweakState { id: string; applied?: boolean; can_revert?: boolean; detail?: string; error?: string }
 export interface Gpu { name: string; vendor: "Nvidia" | "Amd" | "Intel" | "Other"; driver_version: string; display_version?: string | null }
 export interface DriverInfo { version: string; release_date: string; url: string; size: string; name: string }

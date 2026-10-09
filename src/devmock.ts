@@ -16,7 +16,8 @@ const fake = (id: string, interactive = false) => {
     else {
       clearInterval(tick);
       emit("job", { id, phase: "installing", message: interactive ? "needs-interaction" : null });
-      setTimeout(() => emit("job", id === "figma" ? { id, phase: "failed", message: "installer exited with code 1603 (0x00000643)" } : { id, phase: "done", reboot: id === "nordvpn", version: "1.0" }), 1400);
+      const message = id === "vlc" ? "default-signin" : id === "lightshot" ? "default-print-screen" : null;
+      setTimeout(() => emit("job", id === "figma" ? { id, phase: "failed", message: "installer exited with code 1603 (0x00000643)" } : { id, phase: "done", reboot: id === "nordvpn", version: "1.0", message }), 1400);
     }
   }, 250);
 };
@@ -85,6 +86,15 @@ mockIPC(
           { id: "hibernate", applied: false, can_revert: false, detail: "on" },
           { id: "fast_startup", applied: false, can_revert: false, detail: "on" },
         ];
+      case "defaults_states":
+        return [
+          { id: "vlc:types", name: "VLC media player", kind: "types", installed: true, applied: false, pending: true, can_revert: true, detail: "0/114", home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=VLC" },
+          { id: "lightshot:print_screen", name: "Lightshot", kind: "print_screen", installed: false, applied: false, pending: false, can_revert: false, detail: "snipping", home: false, settings_uri: "ms-settings:easeofaccess-keyboard" },
+        ];
+      case "defaults_apply":
+        return "next_sign_in";
+      case "defaults_settings_uri":
+        return "ms-settings:defaultapps";
       case "gpu_info":
         return {
           gpus: [{ name: "NVIDIA GeForce RTX 4080 SUPER", vendor: "Nvidia", driver_version: "32.0.16.1742", display_version: "617.42" }],

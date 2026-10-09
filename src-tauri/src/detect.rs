@@ -12,6 +12,8 @@ pub struct UninstallEntry {
     pub version: String,
     pub uninstall: String,
     pub quiet_uninstall: String,
+    /// InstallLocation, else the folder of DisplayIcon ("" if neither is recorded).
+    pub location: String,
 }
 
 const ROOTS: [(HKEY, &str, &str); 3] = [
@@ -34,12 +36,26 @@ pub fn uninstall_entries() -> Vec<UninstallEntry> {
                         version: sub.get_value("DisplayVersion").unwrap_or_default(),
                         uninstall: sub.get_value("UninstallString").unwrap_or_default(),
                         quiet_uninstall: sub.get_value("QuietUninstallString").unwrap_or_default(),
+                        location: install_location(
+                            &sub.get_value::<String, _>("InstallLocation").unwrap_or_default(),
+                            &sub.get_value::<String, _>("DisplayIcon").unwrap_or_default(),
+                        ),
                     });
                 }
             }
         }
     }
     v
+}
+
+/// `C:\App\` → `C:\App`; without one, `"C:\App\app.exe",0` → `C:\App`.
+pub fn install_location(location: &str, icon: &str) -> String {
+    let loc = location.trim().trim_matches('"').trim_end_matches('\\');
+    if !loc.is_empty() {
+        return loc.to_string();
+    }
+    let icon = icon.split(',').next().unwrap_or("").trim().trim_matches('"');
+    icon.rsplit_once('\\').map(|(dir, _)| dir.to_string()).unwrap_or_default()
 }
 
 /// Installed MSIX package full names for the current user (e.g. "40174MouriNaruto.NanaZip_7.0.1843.0_x64__gnj4mf6z9tkrc").
@@ -136,6 +152,13 @@ mod tests {
         let mut by_key = get("figma");
         by_key.detect = Detect { uninstall_key: Some(r"hklm\x\Discord".into()), ..Default::default() };
         assert_eq!(detect_one(&by_key, &entries, &appx).unwrap(), "1.0.9261");
+    }
+
+    #[test]
+    fn install_folder() {
+        assert_eq!(install_location(r"C:\Program Files (x86)\Skillbrains\lightshot\", ""), r"C:\Program Files (x86)\Skillbrains\lightshot");
+        assert_eq!(install_location("", r#""C:\Program Files\VideoLAN\VLC\vlc.exe",0"#), r"C:\Program Files\VideoLAN\VLC");
+        assert_eq!(install_location("", ""), "");
     }
 
     #[test]

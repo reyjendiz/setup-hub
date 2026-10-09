@@ -60,6 +60,48 @@ pub struct ZipSpec {
     pub launch: bool,
 }
 
+/// What an app takes over from Windows once installed (see defaults.rs).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Defaults {
+    /// Value name under RegisteredApplications; its Capabilities supply the ProgIds.
+    pub app: Option<String>,
+    /// File types to make default. Only the ones the app itself registered are used.
+    #[serde(default)]
+    pub types: Vec<String>,
+    /// Hand the Print Screen key to the app instead of Snipping Tool.
+    #[serde(default)]
+    pub print_screen: bool,
+    /// Exe in the install folder to start (unelevated) after install: a hotkey tool only works while running.
+    pub start: Option<String>,
+}
+
+/// Never handed to another app by a (remote) catalog, even if the app registered them.
+const PROTECTED_TYPES: [&str; 10] = ["exe", "com", "msi", "lnk", "scr", "pif", "cpl", "url", "html", "htm"];
+
+fn validate_defaults(id: &str, d: &Defaults) -> Result<()> {
+    if !d.types.is_empty() && d.app.is_none() {
+        bail!("{id}: defaults.types needs defaults.app");
+    }
+    if let Some(app) = &d.app {
+        if app.is_empty() || !app.chars().all(|c| c.is_ascii_alphanumeric() || " ._-".contains(c)) {
+            bail!("{id}: bad defaults.app");
+        }
+    }
+    let ext = regex::Regex::new(r"^\.[a-z0-9][a-z0-9-]{0,15}$").unwrap();
+    for t in &d.types {
+        let bare = t.trim_start_matches('.');
+        if !ext.is_match(t) || PROTECTED_TYPES.contains(&bare) || crate::installer::SCRIPT_EXTS.contains(&bare) {
+            bail!("{id}: defaults type {t} is not allowed");
+        }
+    }
+    if let Some(s) = &d.start {
+        if s.contains(['/', '\\', ':']) || !s.to_ascii_lowercase().ends_with(".exe") {
+            bail!("{id}: defaults.start must be an .exe file name");
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Item {
     pub id: String,
@@ -89,6 +131,8 @@ pub struct Item {
     /// winget source: "winget" (default) or "msstore".
     #[serde(default)]
     pub winget_source: Option<String>,
+    #[serde(default)]
+    pub defaults: Option<Defaults>,
     // Runtime-only flags for My Apps entries. skip_deserializing: a (remote) catalog can never set them.
     #[serde(skip_deserializing, default)]
     pub custom: bool,
@@ -122,6 +166,9 @@ pub fn parse(json: &str) -> Result<Catalog> {
         }
         if let Source::GithubRelease { asset_regex, .. } = &it.source {
             regex::Regex::new(asset_regex)?;
+        }
+        if let Some(d) = &it.defaults {
+            validate_defaults(&it.id, d)?;
         }
     }
     Ok(c)

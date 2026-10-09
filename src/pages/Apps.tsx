@@ -1,11 +1,19 @@
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api, getJob, getLog, isActive, Item, useJob, useJobsVersion } from "../api";
 import { useApp } from "../App";
 import { AppIcon, Badge, Button, Card, JobButton, PageHeader, spring } from "../components";
-import { useT } from "../i18n";
+import { Key, useT } from "../i18n";
+
+/** Messages the engine sends after making an app the default (see defaults.rs after_install). */
+const DEFAULT_MSG: Record<string, Key> = {
+  "default-signin": "apps.default.signin",
+  "default-signin-home": "apps.default.signinHome",
+  "default-settings": "apps.default.settings",
+  "default-print-screen": "apps.default.printScreen",
+};
 
 export default function Apps() {
   const { t, lang } = useT();
@@ -106,6 +114,7 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
   const { t, lang } = useT();
   const job = useJob(item.id);
   const waitingOnUser = item.interactive && job?.phase === "installing";
+  const defaultMsg = job?.phase === "done" ? DEFAULT_MSG[job.message ?? ""] : undefined;
   return (
     <Card className="group relative flex flex-col gap-3 p-4">
       <div className="flex items-start gap-3">
@@ -141,6 +150,16 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
         <p className={`text-[12px] ${waitingOnUser ? "font-medium text-[var(--orange)]" : "text-[var(--tertiary)]"}`}>
           {waitingOnUser ? t("apps.interactiveRunning") : item.note?.[lang]}
         </p>
+      )}
+      {defaultMsg && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[12px] text-[var(--secondary)]">{t(defaultMsg, { name: item.name })}</p>
+          {job?.message !== "default-signin" && job?.message !== "default-print-screen" && (
+            <Button variant="plain" className="shrink-0" onClick={() => api.defaultsSettingsUri(`${item.id}:${item.defaults?.types.length ? "types" : "print_screen"}`).then(openUrl)}>
+              {t("tweaks.openSettings")}
+            </Button>
+          )}
+        </div>
       )}
     </Card>
   );
