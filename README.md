@@ -1,20 +1,28 @@
 # Setup Hub
 
-![Setup Hub — Apps page](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img alt="Setup Hub — Apps page" src="docs/screenshot.png">
+</picture>
 
-**[Download the latest release](https://github.com/reyjendiz/setup-hub/releases/latest)**
+**[⬇ Download the latest release](https://github.com/reyjendiz/setup-hub/releases/latest)** — `setup-hub.exe`, portable, nothing to install.
 
-One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
+Everything you set up after reinstalling Windows 10/11 x64, from one file. Pick your apps, press **Install all**, and Setup Hub downloads, verifies and installs them silently, one after another — then gets out of the way.
 
-- **Apps** — silent install of 77 apps (winget first, signed vendor installer as fallback) in two tabs: **Programs**, grouped into *Everyday*, *For designers* (incl. the ArtCraft Crafting Apps), *For programmers* and *Dev toolchain* (Git, Node.js, Python + launcher, uv, FFmpeg) — each group with its own install button — and **Games**. Plus "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection and **Update / Update all** for installed apps.
-- **My Apps** — add any program yourself by pasting a link (GitHub repo, direct file, winget ID, Microsoft Store, web page); it then installs with one click like the built-in apps.
-- **Files** — list and download the shared Google Drive folder (no sign-in), nested folders, resume. Nothing is run or extracted.
-- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; **Print Screen without Snipping Tool** (for Flameshot); optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a built-in Windows app (Chrome as the browser, VLC for media, PdfCraft for PDFs). Each one reverts.
-- **Drivers** — reads the graphics card from Windows (WMI, then the device registry) and installs the latest WHQL Game Ready driver for it; when Windows can't tell the model (fresh install on the Basic Display Adapter, detection or NVIDIA's lookup failing) it installs the **NVIDIA App**, which detects the card itself. AMD/Intel get their official pages.
-- **Ven** — installs a small app (bundled in the exe) that at every sign-in updates Vencord in Discord and then starts Discord.
-- **Activation** — license status, *Open Activation settings*, *Enter my own key*. No KMS, no third-party keys.
-- **Settings** — EN/RU, theme, folders, parallel downloads, GitHub token / Google API key (Credential Manager), remote catalog, **updates** (check on launch, check now), log export.
-- **Auto-update** — on launch Setup Hub checks its own GitHub releases (*Update and restart*) and the apps it installed (*Update all*).
+### What it does
+
+- **Apps** — 77 free apps in two tabs. **Programs** is grouped into *Everyday* (browsers, messengers, media, notes, system utilities), *For designers* (Blender, Affinity, GIMP, Krita, the ArtCraft apps…), *For programmers* (VS Code, Cursor, Docker, Postman…) and *Dev toolchain* (Git, Node.js, Python, uv, FFmpeg); **Games** has the launchers. Each group installs in one click; winget first, the vendor's signed installer as fallback, with live progress, cancel, retry and one restart prompt at the end.
+- **Updates** — Setup Hub updates itself from GitHub Releases (*Update and restart*), and finds newer versions of the apps it installed (*Update all*).
+- **Default apps** — apps that replace a built-in one become the default: Chrome for links, VLC for video and music, PdfCraft for PDFs, Flameshot on the Print Screen key. Every change can be reverted in **Tweaks**.
+- **Drivers** — reads your graphics card from Windows and installs the latest NVIDIA Game Ready driver; if Windows doesn't know the model yet (fresh install), it installs the NVIDIA App, which finds it. AMD and Intel get their official pages.
+- **Tweaks** — pointer speed, mouse acceleration off, High performance power plan, Print Screen without Snipping Tool, hibernation and Fast Startup — one click each, each one reverts.
+- **Ven** — keeps [Vencord](https://github.com/Vendicated/Vencord) in Discord: at every sign-in it installs the latest Vencord, then opens Discord. No .NET, no admin rights.
+- **My Apps** — add any program by pasting a link (GitHub repo, direct download, winget ID, Microsoft Store, web page); it installs like the built-in ones, after you review its signature once.
+- **Files** — downloads your shared Google Drive folder, no sign-in.
+- **Activation** — Windows license status and *Enter my own key*. No KMS, no third-party keys.
+- **Settings** — English / Russian, light / dark theme, download folder, parallel downloads, tokens in Windows Credential Manager, remote catalog, update checks, log export.
+
+Safe by default: HTTPS only, a host allow-list per app, SHA-256 and Authenticode checks before anything runs, scripts are never executed, no telemetry.
 
 ## Build
 
