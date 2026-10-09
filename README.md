@@ -1,5 +1,9 @@
 # Setup Hub
 
+![Setup Hub — Apps page](docs/screenshot.png)
+
+**[Download the latest release](https://github.com/sevcenkoa864-oss/setup-hub/releases/latest)**
+
 One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
 
 - **Apps** — silent install of 22 apps (winget first, signed vendor installer as fallback), "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection.
