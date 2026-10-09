@@ -18,7 +18,7 @@ Everything you set up after reinstalling Windows 10/11 x64, from one file. Pick 
 - **Tweaks** — pointer speed, mouse acceleration off, High performance power plan, Print Screen without Snipping Tool, hibernation and Fast Startup — one click each, each one reverts.
 - **Ven** — keeps [Vencord](https://github.com/Vendicated/Vencord) in Discord: at every sign-in it installs the latest Vencord, then opens Discord. No .NET, no admin rights.
 - **My Apps** — add any program by pasting a link (GitHub repo, direct download, winget ID, Microsoft Store, web page); it installs like the built-in ones, after you review its signature once.
-- **Files** — downloads your shared Google Drive folder, no sign-in.
+- **Files** — add any public Google Drive folder by its link and download from it, no sign-in. Add several and switch between them; each one downloads into its own subfolder.
 - **Activation** — Windows license status and *Enter my own key*. No KMS, no third-party keys.
 - **Settings** — English / Russian, light / dark theme, download folder, parallel downloads, tokens in Windows Credential Manager, remote catalog, update checks, log export.
 
@@ -35,7 +35,7 @@ pnpm tauri build
 
 Outputs:
 - `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and Ven are embedded; requests admin via manifest).
-- `src-tauri/target/release/bundle/nsis/Setup Hub_1.2.0_x64-setup.exe` — optional installer.
+- `src-tauri/target/release/bundle/nsis/Setup Hub_1.3.0_x64-setup.exe` — optional installer.
 
 Other commands:
 

@@ -69,7 +69,7 @@
   "reboot.later": "Later",
 
   "files.title": "Files",
-  "files.subtitle": "Download from the shared Google Drive folder. Nothing is run or extracted.",
+  "files.subtitle": "Download from public Google Drive folders you add. Nothing is run or extracted.",
   "files.downloadAll": "Download all",
   "files.destination": "Save to",
   "files.change": "Change…",
@@ -77,6 +77,11 @@
   "files.empty": "The folder is empty.",
   "files.name": "Name",
   "files.size": "Size",
+  "files.folders": "Folders",
+  "files.addTitle": "Add a Google Drive folder",
+  "files.addHint": "Paste the link of any folder shared as “Anyone with the link”. You can add several and switch between them.",
+  "files.add": "Add folder",
+  "files.remove": "Remove {name}",
   "files.noKey": "Listing without an API key. Add one in Settings for faster, more reliable listings.",
 
   "tweaks.title": "Tweaks",

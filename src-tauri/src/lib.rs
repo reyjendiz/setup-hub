@@ -320,13 +320,18 @@ fn install_nvidia(app: AppHandle, eng: Eng<'_>, clean: bool) {
 // ---------- Google Drive ----------
 
 #[tauri::command]
-async fn drive_list(folder: Option<String>) -> CmdResult<Vec<drive::Entry>> {
+async fn drive_list(folder: String) -> CmdResult<Vec<drive::Entry>> {
     let key = settings::get_secret("google_api_key");
-    let folder = folder.unwrap_or_else(|| drive::FOLDER_ID.to_string());
     if !folder.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
         return Err("invalid Drive folder id".into());
     }
     drive::list(&folder, key.as_deref()).await.map_err(err)
+}
+
+/// Validates a pasted folder link (public, really a folder) and returns its id and name.
+#[tauri::command]
+async fn drive_folder_info(link: String) -> CmdResult<drive::Folder> {
+    drive::folder_info(&link, settings::get_secret("google_api_key").as_deref()).await.map_err(err)
 }
 
 #[derive(Deserialize)]
@@ -664,7 +669,7 @@ pub fn run() {
             defaults_states, defaults_apply, defaults_revert, defaults_settings_uri,
             check_self_update, apply_self_update, check_app_updates,
             gpu_info, install_nvidia,
-            drive_list, drive_download,
+            drive_list, drive_folder_info, drive_download,
             myapps_list, myapps_analyze, myapps_add, myapps_update, myapps_remove, myapps_duplicate, myapps_reorder,
             myapps_check, myapps_uninstall, myapps_export, myapps_import, myapps_fetch_url, log_tail,
             ven_state, ven_install, ven_run, ven_remove,
