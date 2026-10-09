@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Check, Gauge, Monitor, Moon, MousePointer2, Power } from "lucide-react";
+import { Camera, Check, Gauge, Monitor, Moon, MousePointer2, Power } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, DefaultState, TweakState } from "../api";
 import { useApp } from "../App";
@@ -10,6 +10,7 @@ const META: Record<string, { icon: typeof Gauge; optional?: boolean }> = {
   mouse_speed: { icon: MousePointer2 },
   mouse_precision: { icon: Gauge },
   power_plan: { icon: Power },
+  print_screen: { icon: Camera },
   hibernate: { icon: Moon, optional: true },
   fast_startup: { icon: Monitor, optional: true },
 };

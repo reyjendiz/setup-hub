@@ -15,6 +15,7 @@ export interface Item {
   needs_reboot: boolean;
   note?: I18n | null;
   defaults?: { app: string; types: string[]; what: I18n } | null;
+  print_screen?: boolean;
 }
 export interface Settings {
   lang: "en" | "ru";
@@ -150,8 +151,10 @@ export const api = {
   myappsFetchUrl: (url: string) => invoke<MyApp[]>("myapps_fetch_url", { url }),
   logTail: (id: string) => invoke<string>("log_tail", { id }),
   driveDownload: (files: { id: string; name: string; path: string }[], dest: string) => invoke<void>("drive_download", { files, dest }),
-  adState: () => invoke<AdState>("ad_state"),
-  adInstall: () => invoke<void>("ad_install"),
+  venState: () => invoke<VenState>("ven_state"),
+  venInstall: () => invoke<void>("ven_install"),
+  venRun: () => invoke<void>("ven_run"),
+  venRemove: () => invoke<void>("ven_remove"),
   licenseStatus: () => invoke<License[]>("license_status"),
   activateKey: (key: string) => invoke<string>("activate_key", { key }),
   saveSettings: (s: Settings) => invoke<void>("save_settings", { s }),
@@ -188,7 +191,14 @@ export interface GpuInfo {
   use_nvidia_app: boolean;
 }
 export interface DriveEntry { id: string; name: string; mime: string; is_folder: boolean; size?: number | null; path: string }
-export interface AdState { installed: boolean; discord: boolean; dotnet: boolean; vencord_cli: boolean; path: string }
+export interface VenState {
+  installed: boolean;
+  autostart: boolean;
+  discord: boolean;
+  vencord: boolean;
+  last_run?: { time: number; vencord_ok: boolean; discord_started: boolean; message: string } | null;
+  path: string;
+}
 export interface License { name: string; description: string; status: number; partial_key: string; grace_minutes: number }
 
 /** "1.10.0" > "1.9.1" → true. Non-numeric parts compare as 0. */

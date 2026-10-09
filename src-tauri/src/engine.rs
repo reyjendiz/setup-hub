@@ -174,6 +174,9 @@ pub async fn install(app: AppHandle, eng: Arc<Engine>, id: String) {
         if !it.custom && it.defaults.is_some() {
             msg = defaults::after_install(&it).or(msg);
         }
+        if !it.custom && it.print_screen {
+            msg = Some(defaults::take_print_screen(&it).await);
+        }
         let version = detect::detect_one(&e2.item(&it.id).unwrap_or(it), &detect::uninstall_entries(), &detect::appx_packages());
         Ok((o, version, msg))
     })

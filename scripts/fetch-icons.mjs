@@ -29,7 +29,7 @@ const SOURCES = {
   effectcraft: [craft("effectcraft"), "getartcraft.com"],
   designcraft: [craft("designcraft"), "getartcraft.com"],
   qbittorrent: [null, "qbittorrent.org"],
-  ad: [null, "vencord.dev"],
+  ven: [null, "vencord.dev"],
   nanazip: ["https://raw.githubusercontent.com/M2Team/NanaZip/main/Assets/NanaZip.png", "github.com"],
   onlyoffice: [null, "onlyoffice.com"],
   viber: [null, "viber.com"],
@@ -42,6 +42,7 @@ const SOURCES = {
   git: [null, "git-scm.com"], // committed icon converted from git-for-windows/build-extra's git.ico
   uv: [null, "docs.astral.sh"],
   ffmpeg: [null, "ffmpeg.org"],
+  flameshot: ["https://raw.githubusercontent.com/flameshot-org/flameshot/HEAD/data/img/hicolor/128x128/apps/flameshot.png", "flameshot.org"],
 };
 const only = process.argv.slice(2);
 

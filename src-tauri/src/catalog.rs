@@ -123,6 +123,10 @@ pub struct Item {
     pub winget_source: Option<String>,
     #[serde(default)]
     pub defaults: Option<Defaults>,
+    /// A screenshot app that should get the Print Screen key: after install Setup Hub frees the key
+    /// from Snipping Tool, adds `detect.path` to autostart and starts it.
+    #[serde(default)]
+    pub print_screen: bool,
     // Runtime-only flags for My Apps entries. skip_deserializing: a (remote) catalog can never set them.
     #[serde(skip_deserializing, default)]
     pub custom: bool,
@@ -159,6 +163,13 @@ pub fn parse(json: &str) -> Result<Catalog> {
         }
         if let Some(d) = &it.defaults {
             validate_defaults(&it.id, d)?;
+        }
+        if it.print_screen {
+            // It ends up in autostart: only an installed program's exe under Program Files.
+            let p = it.detect.path.as_deref().unwrap_or("").to_ascii_lowercase();
+            if !p.starts_with(r"%programfiles%\") || !p.ends_with(".exe") || p.contains("..") {
+                bail!("{}: print_screen needs detect.path = %ProgramFiles%\\…\\app.exe", it.id);
+            }
         }
     }
     Ok(c)

@@ -247,6 +247,34 @@ pub fn after_install(item: &Item) -> Option<String> {
     Some(code.into())
 }
 
+// ---------- Print Screen ----------
+
+/// For a screenshot app (Flameshot): free Print Screen from Snipping Tool (the revertable Tweaks
+/// item), start the app with Windows the way it does itself (HKCU Run, value = its name) and start
+/// it now as the signed-in user. Returns the message code for the app card.
+pub async fn take_print_screen(item: &Item) -> String {
+    let Some(exe) = item.detect.path.as_deref().map(util::expand_env) else { return "default-settings".into() };
+    if let Err(e) = crate::tweaks::apply("print_screen").await {
+        tracing::warn!("{}: could not free Print Screen: {e:#}", item.id);
+        return "default-settings".into();
+    }
+    let run = RegKey::predef(HKEY_CURRENT_USER).create_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run");
+    if let Err(e) = run.and_then(|(k, _)| k.set_value(&item.name, &exe)) {
+        tracing::warn!("{}: could not add to autostart: {e}", item.id);
+    }
+    if std::path::Path::new(&exe).is_file() {
+        let name = std::path::Path::new(&exe).file_name().unwrap_or_default().to_string_lossy().to_string();
+        let running = util::run("tasklist.exe", &["/FI", &format!("IMAGENAME eq {name}"), "/NH"]).await.map(|(_, o)| o.to_ascii_lowercase().contains(&name.to_ascii_lowercase())).unwrap_or(false);
+        if !running {
+            let r = crate::installer::run_unelevated(&format!("start \"\" \"{exe}\""), &std::sync::atomic::AtomicBool::new(false)).await;
+            tracing::info!("{}: started {exe}: {r:?}", item.id);
+        }
+    } else {
+        tracing::warn!("{}: {exe} not found after install", item.id);
+    }
+    "default-print-screen".into()
+}
+
 // ---------- state for the Tweaks page ----------
 
 #[derive(Debug, Serialize)]

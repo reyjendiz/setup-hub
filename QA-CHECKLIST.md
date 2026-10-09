@@ -71,6 +71,8 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Pointer speed → Apply → Control Panel › Mouse shows the 5th notch; `MouseSensitivity` = 8. Revert → previous value.
 - [ ] Enhance pointer precision → Apply → checkbox off in Control Panel; Revert → back on.
 - [ ] Power → Apply → `powercfg /getactivescheme` = High performance; display/sleep/hibernate "Never". Revert → previous plan & timeouts.
+- [ ] Print Screen → Apply → `HKCU\Control Panel\Keyboard\PrintScreenKeyForSnippingEnabled` = 0 and Settings › Accessibility › Keyboard shows "Use the Print screen key to open screen capture" off; Revert → previous value (deleted again if it was absent).
+- [ ] Install **Flameshot** → the Print Screen tweak shows Applied, `HKCU\…\Run\Flameshot` points at `C:\Program Files\Flameshot\bin\flameshot.exe`, Flameshot is in the tray (not elevated); **PrtScn** opens Flameshot's capture (sign out and in if Snipping Tool still opens); after a restart Flameshot is running again and PrtScn still works.
 - [ ] Hibernation / Fast Startup toggles apply and revert; `powercfg /a` reflects the change.
 - [ ] Re-applying a tweak twice and then reverting restores the *original* values (snapshot isn't overwritten).
 
@@ -93,9 +95,16 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Rename `powershell.exe`'s path out of reach (or run with WMI service stopped) → the card still appears (read from the registry).
 - [ ] VM with only Basic Display Adapter and a non-NVIDIA/virtual GPU → "No supported GPU detected"; no install button.
 
-## AD
-- [ ] Without Discord → "Install Discord, then AD" installs Discord then AD.
-- [ ] With Discord → **Install AD** installs .NET 8 Desktop Runtime if missing, writes `%LOCALAPPDATA%\Programs\AD\MyDiscordLauncher.exe`, Desktop + Start Menu "AD" shortcuts, pre-fills Discord path and downloads Vencord CLI, then opens AD with the first two rows green.
+## Ven
+- [ ] PC that had the old AD: **Install Ven** removes `%LOCALAPPDATA%\Programs\AD`, `%LOCALAPPDATA%\MyDiscordLauncher`, the AD shortcuts and `HKCU\…\Run\MyDiscordLauncher`.
+- [ ] Without Discord → "Install Discord, then Ven" installs Discord, then Ven.
+- [ ] With Discord → **Install Ven** → `%LOCALAPPDATA%\Programs\Ven\Ven.exe`, `HKCU\…\Run\Ven` = `"…\Ven.exe" --startup`, Start Menu "Ven"; Discord opens **with Vencord** (Settings shows the Vencord section) and is **not** elevated (Task Manager › Details › Elevated = No); the page shows all three rows green and "Last run …: Vencord is up to date; Discord started".
+- [ ] Task Manager › Startup apps: Discord = Disabled, Ven = Enabled.
+- [ ] Restart the PC → after sign-in Discord opens minimized to the tray with Vencord; `%LOCALAPPDATA%\Ven\ven.log` shows the run (installer update skipped or done, `installer: … Successfully patched`).
+- [ ] Let Discord update itself (or install an older Discord), restart → Vencord is still there.
+- [ ] Unplug the network, restart → Discord still opens; the Ven page shows "offline — Vencord not checked" in orange.
+- [ ] **Run now** → Discord closes and reopens with Vencord; the last-run line updates.
+- [ ] **Remove Ven** → Run entry, shortcut and folders gone; Discord's startup entry is Enabled again; Vencord still in Discord.
 
 ## Activation
 - [ ] Status shows edition, "Activated"/grace state and last 5 key characters.

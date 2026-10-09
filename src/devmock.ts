@@ -16,7 +16,7 @@ const fake = (id: string, interactive = false) => {
     else {
       clearInterval(tick);
       emit("job", { id, phase: "installing", message: interactive ? "needs-interaction" : null });
-      const message = ["vlc", "chrome", "pdfcraft"].includes(id) ? "default-signin" : null;
+      const message = ["vlc", "chrome", "pdfcraft"].includes(id) ? "default-signin" : id === "flameshot" ? "default-print-screen" : null;
       setTimeout(() => emit("job", id === "figma" ? { id, phase: "failed", message: "installer exited with code 1603 (0x00000643)" } : { id, phase: "done", reboot: id === "nordvpn", version: "1.0", message }), 1400);
     }
   }, 250);
@@ -83,6 +83,7 @@ mockIPC(
           { id: "mouse_speed", applied: false, can_revert: false, detail: "6/11" },
           { id: "mouse_precision", applied: true, can_revert: true, detail: "off" },
           { id: "power_plan", applied: false, can_revert: false, detail: "Balanced" },
+          { id: "print_screen", applied: false, can_revert: false, detail: "on" },
           { id: "hibernate", applied: false, can_revert: false, detail: "on" },
           { id: "fast_startup", applied: false, can_revert: false, detail: "on" },
         ];
@@ -117,8 +118,8 @@ mockIPC(
       case "drive_download":
         args.files.forEach((f: any) => fake(`drive:${f.id}`));
         return;
-      case "ad_state":
-        return { installed: false, discord: true, dotnet: true, vencord_cli: false, path: "" };
+      case "ven_state":
+        return { installed: true, autostart: true, discord: true, vencord: true, last_run: { time: Date.now() / 1000 - 3600, vencord_ok: true, discord_started: true, message: "Vencord is up to date; Discord started" }, path: "C:\\Users\\you\\AppData\\Local\\Programs\\Ven\\Ven.exe" };
       case "license_status":
         return [{ name: "Windows(R), Professional edition", description: "Windows(R) Operating System, RETAIL channel", status: 1, partial_key: "3V66T", grace_minutes: 0 }];
       case "logs_dir":

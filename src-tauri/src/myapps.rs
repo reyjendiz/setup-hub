@@ -234,6 +234,7 @@ impl MyApp {
             mode: self.mode,
             winget_source,
             defaults: None,
+            print_screen: false,
             custom: true,
             reviewed: self.reviewed || matches!(self.source, MySource::Winget { .. }),
             allow_unsigned: self.allow_unsigned,

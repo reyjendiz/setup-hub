@@ -6,12 +6,12 @@
 
 One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
 
-- **Apps** — silent install of 36 apps in two tabs, **Programs** and **Games** (winget first, signed vendor installer as fallback): "Install all", a **For Claude Code** group (Git, Node.js, Python + launcher, uv, FFmpeg) with its own install button, the ArtCraft Crafting Apps, multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection, **Update / Update all** for installed apps.
+- **Apps** — silent install of 37 apps in two tabs, **Programs** and **Games** (winget first, signed vendor installer as fallback): "Install all", a **For Claude Code** group (Git, Node.js, Python + launcher, uv, FFmpeg) with its own install button, the ArtCraft Crafting Apps, multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection, **Update / Update all** for installed apps.
 - **My Apps** — add any program yourself by pasting a link (GitHub repo, direct file, winget ID, Microsoft Store, web page); it then installs with one click like the built-in apps.
 - **Files** — list and download the shared Google Drive folder (no sign-in), nested folders, resume. Nothing is run or extracted.
-- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a built-in Windows app (Chrome as the browser, VLC for media, PdfCraft for PDFs). Each one reverts.
+- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; **Print Screen without Snipping Tool** (for Flameshot); optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a built-in Windows app (Chrome as the browser, VLC for media, PdfCraft for PDFs). Each one reverts.
 - **Drivers** — reads the graphics card from Windows (WMI, then the device registry) and installs the latest WHQL Game Ready driver for it; when Windows can't tell the model (fresh install on the Basic Display Adapter, detection or NVIDIA's lookup failing) it installs the **NVIDIA App**, which detects the card itself. AMD/Intel get their official pages.
-- **AD** — installs your Vencord launcher (bundled in the exe).
+- **Ven** — installs a small app (bundled in the exe) that at every sign-in updates Vencord in Discord and then starts Discord.
 - **Activation** — license status, *Open Activation settings*, *Enter my own key*. No KMS, no third-party keys.
 - **Settings** — EN/RU, theme, folders, parallel downloads, GitHub token / Google API key (Credential Manager), remote catalog, **updates** (check on launch, check now), log export.
 - **Auto-update** — on launch Setup Hub checks its own GitHub releases (*Update and restart*) and the apps it installed (*Update all*).
@@ -26,7 +26,7 @@ pnpm tauri build
 ```
 
 Outputs:
-- `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and AD are embedded; requests admin via manifest).
+- `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and Ven are embedded; requests admin via manifest).
 - `src-tauri/target/release/bundle/nsis/Setup Hub_1.2.0_x64-setup.exe` — optional installer.
 
 Other commands:
@@ -123,24 +123,30 @@ Runtime-only safety flags (`custom`, `reviewed`, `allow_unsigned`, `allow_http`)
 - **Google Chrome** installs through winget (`Google.Chrome`), falling back to Google's enterprise MSI (`googlechromestandaloneenterprise64.msi`, signed by Google).
 - **Claude Code toolchain**: Git (`Git.Git`, fallback: the signed Git for Windows release on GitHub), Node.js LTS, Python 3.14 (winget passes `PrependPath=1`), Python Launcher, uv and FFmpeg come from winget; uv and FFmpeg are winget "portable" packages, linked into `%LOCALAPPDATA%\Microsoft\WinGet\Links` on PATH.
 - **ArtCraft Crafting Apps** ([getartcraft.com/apps](https://getartcraft.com/apps)): PhotoCraft, VectorCraft, FilmCraft, LightCraft, EffectCraft, DesignCraft and PdfCraft, each the per-machine `…-windows-x64.msi` from its `storytold/*` GitHub release, checked against GitHub's SHA-256 digest. The ArtCraft studio app itself isn't in the catalog: it's not on that page, and its GitHub releases are drafts.
-- **macshot** (`sw33tLie/macshot`) is not included: it's a macOS-only Swift app (`.dmg` / Homebrew), with no Windows build.
+- **Flameshot** comes from winget (`Flameshot.Flameshot`), falling back to its GitHub MSI (`Flameshot-<version>-win64.msi`, GitHub's SHA-256). Flameshot registers Print Screen itself (`RegisterHotKey(VK_SNAPSHOT)`), which fails while Windows gives the key to Snipping Tool, and it doesn't start with Windows by default. So after installing it Setup Hub applies the **Print Screen** tweak (`HKCU\Control Panel\Keyboard\PrintScreenKeyForSnippingEnabled` = 0, previous value kept for Revert), adds `HKCU\…\Run\Flameshot` = `%ProgramFiles%\Flameshot\bin\flameshot.exe` (the same entry Flameshot's own "Launch at startup" writes) and starts it as the signed-in user. Catalog flag: `print_screen: true`, which requires `detect.path` to be an `.exe` under `%ProgramFiles%`.
 - **Astrum Play** is a web loader (`astrum-play.ru/loader/AstrumPlayLoader.exe`) with no silent mode — also *Needs your clicks*.
 - **AutoLogon** is extracted to `%ProgramFiles%\SetupHub\Tools\Autologon` with a Start Menu shortcut and launched; Setup Hub never types credentials.
 - **NVIDIA**: the card comes from WMI (`Win32_VideoController`), or from `HKLM\SYSTEM\CurrentControlSet\Enum\PCI` display devices if PowerShell/WMI fails. A card with PCI vendor `10DE` still on the Basic Display Adapter has no model name yet, so it gets the NVIDIA App. Otherwise product/series IDs come from `lookupValueSearch.aspx` (TypeID 3/4) matched against that name, then `AjaxDriverService DriverManualLookup` with `dch=1, isWHQL=1, upCRD=0` (Game Ready, not Studio). Installed with `-s -noreboot -noeula [-clean]`; a reboot is always offered after.
 - **Icons** are fetched once at build time (`pnpm icons`) and bundled, so runtime network calls stay limited to catalog, downloads, NVIDIA lookup and Drive. No telemetry; the only update traffic is the GitHub release check above.
 
-## AD (from `F:\AD`)
+## Ven (Vencord + Discord at sign-in)
 
-`src-tauri/resources/AD/` is a copy of `F:\AD` (without `bin/` and `obj/` build output). It contains:
+`ven/` is a separate small Rust app (~1.5 MB, no .NET, no admin rights). `src-tauri/build.rs` builds it for the same target and Setup Hub embeds the exe. *Install Ven* (Ven page):
 
-- `VencordLauncher/` — the C# .NET 8 WinForms app **MyDiscordLauncher** (`Program.cs`, `Ui.cs`) and its build `out/MyDiscordLauncher.exe`. **This is what Setup Hub installs.** It is framework-dependent → needs the **.NET 8 Desktop Runtime** (installed automatically via winget `Microsoft.DotNet.DesktopRuntime.8`). At runtime it downloads `VencordInstallerCli.exe` from `github.com/Vencord/Installer` into `%LOCALAPPDATA%\MyDiscordLauncher`, patches Discord's `app-*` folder when `_app.asar` is missing, then starts Discord via `Update.exe --processStart Discord.exe`; `--silent` mode is what it registers to run at sign-in.
-- `Launcher/` — an older Go variant (`main.go`, needs `config.json` + `VencordInstallerCLI.exe` beside it). Source only, no binary; kept for reference, not installed.
+1. removes the old **AD** launcher (MyDiscordLauncher: its files, shortcuts and `Run\MyDiscordLauncher` entry);
+2. writes `%LOCALAPPDATA%\Programs\Ven\Ven.exe`, adds `HKCU\…\Run\Ven` = `"…\Ven.exe" --startup` and a Start Menu shortcut;
+3. runs it once as the signed-in user (not elevated — Discord must not inherit Setup Hub's admin rights) and shows the result.
 
-*Install AD* writes `%LOCALAPPDATA%\Programs\AD\MyDiscordLauncher.exe`, pre-fills its Discord path and Vencord CLI (hash-verified against GitHub's digest) so its first two steps are already green, adds Desktop and Start Menu "AD" shortcuts and opens it — click **Enable** there to start with Windows. If Discord is missing, the AD page offers "Install Discord, then AD".
+Every run of `Ven.exe`:
 
-"Replace Discord shortcut" is intentionally **not** offered: in `--silent` mode the launcher does nothing when Discord is already patched (Program.cs line 30), so a Discord shortcut pointing at it would stop opening Discord.
+- marks Discord's own Run entry *Disabled* (`Explorer\StartupApproved\Run\Discord`, what Task Manager › Startup apps does — Discord rewrites its Run value but never this flag), so Discord can't open before Vencord is in place;
+- waits for the network (up to 2 minutes at sign-in), then updates `%LOCALAPPDATA%\Ven\VencordInstallerCli.exe` from the latest [Vencord/Installer](https://github.com/Vencord/Installer) release when its SHA-256 (GitHub's asset digest, required) differs — only GitHub hosts are followed;
+- runs `VencordInstallerCli -install -branch stable`: the installer downloads the latest [Vencord](https://github.com/Vendicated/Vencord) when it changed, closes Discord if it's open, and patches the newest Discord version (Vencord's own `persistAfterDiscordUpdates` keeps it in place across Discord updates in between);
+- starts Discord with `Update.exe --processStart Discord.exe` (plus `--process-start-args --start-minimized` at sign-in, like Discord's own autostart). Offline, it skips the update and still starts Discord.
 
-To update AD, rebuild it in `F:\AD\VencordLauncher` (`dotnet publish -c Release -o out`), copy `out\MyDiscordLauncher.exe` into `src-tauri/resources/AD/VencordLauncher/out/` and rebuild Setup Hub.
+Each run is logged to `%LOCALAPPDATA%\Ven\ven.log`; `status.json` holds the last result, which the Ven page shows with **Run now** and **Remove Ven** (removes Ven, gives Discord its autostart back; Vencord stays in Discord).
+
+Why the old AD didn't work: its sign-in mode only ran after you clicked *Enable* in its window, it exited without starting Discord whenever Discord was already patched, and it needed the .NET 8 Desktop Runtime.
 
 ## Layout
 
@@ -155,7 +161,8 @@ src-tauri/src/
   detect.rs              installed-state detection
   defaults.rs            default apps: associations policy XML
   update.rs              self-update from GitHub Releases, app update checks
-  tweaks.rs gpu.rs drive.rs ad.rs activation.rs settings.rs util.rs
+  ven.rs                 installs/runs/removes Ven (embedded from ../ven)
+  tweaks.rs gpu.rs drive.rs activation.rs settings.rs util.rs
   bin/verify_catalog.rs  build-time link verification → catalog-report.md
 QA-CHECKLIST.md          manual test plan for a clean Windows 11 VM
 ```

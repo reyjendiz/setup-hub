@@ -1,5 +1,4 @@
 pub mod activation;
-pub mod ad;
 pub mod catalog;
 pub mod defaults;
 pub mod detect;
@@ -14,6 +13,7 @@ pub mod sig;
 pub mod tweaks;
 pub mod update;
 pub mod util;
+pub mod ven;
 #[cfg(test)]
 mod live_tests;
 
@@ -543,33 +543,56 @@ fn log_tail(id: String) -> String {
     lines[lines.len().saturating_sub(30)..].join("\n")
 }
 
-// ---------- AD ----------
+// ---------- Ven ----------
 
 #[tauri::command]
-fn ad_state() -> ad::AdState {
-    ad::state()
+fn ven_state() -> ven::VenState {
+    ven::state()
 }
 
+/// Installs Ven (replacing the old AD launcher) and runs it once: Vencord gets installed and Discord starts.
 #[tauri::command]
-fn ad_install(app: AppHandle, eng: Eng<'_>) {
+fn ven_install(app: AppHandle, eng: Eng<'_>) {
     let eng = eng.inner().clone();
     tauri::async_runtime::spawn(async move {
         let a = app.clone();
-        engine::job(&app, &eng, "ad", "AD", move |cancel| async move {
-            if !ad::dotnet8_desktop_present() {
-                emit(&a, JobEvent { message: Some(".NET 8 Desktop Runtime".into()), ..ev("ad", "installing") });
-                if !installer::ensure_winget().await {
-                    anyhow::bail!("AD needs the .NET 8 Desktop Runtime and winget is unavailable to install it");
-                }
-                installer::winget_install("Microsoft.DotNet.DesktopRuntime.8", "winget", &cancel, &|_, _| {}).await?;
+        engine::job(&app, &eng, "ven", "Ven", move |cancel| async move {
+            if !ven::state().discord {
+                anyhow::bail!("Discord isn't installed — install it first");
             }
-            emit(&a, ev("ad", "installing"));
-            let path = ad::install(&cancel).await?;
-            let _ = std::process::Command::new(&path).spawn();
-            Ok((Outcome::Ok, None, Some(path)))
+            emit(&a, ev("ven", "installing"));
+            ven::install().await?;
+            let last = ven::run_now(&cancel).await?;
+            if !last.vencord_ok {
+                anyhow::bail!("Ven is installed and starts with Windows, but its first run failed: {}", last.message);
+            }
+            Ok((Outcome::Ok, None, Some(last.message)))
         })
         .await
     });
+}
+
+/// Runs Ven now (update Vencord, start Discord), as the signed-in user.
+#[tauri::command]
+fn ven_run(app: AppHandle, eng: Eng<'_>) {
+    let eng = eng.inner().clone();
+    tauri::async_runtime::spawn(async move {
+        let a = app.clone();
+        engine::job(&app, &eng, "ven-run", "Ven", move |cancel| async move {
+            emit(&a, ev("ven-run", "installing"));
+            let last = ven::run_now(&cancel).await?;
+            if !last.vencord_ok || !last.discord_started {
+                anyhow::bail!("{}", last.message);
+            }
+            Ok((Outcome::Ok, None, Some(last.message)))
+        })
+        .await
+    });
+}
+
+#[tauri::command]
+fn ven_remove() -> CmdResult<()> {
+    ven::remove().map_err(err)
 }
 
 // ---------- activation ----------
@@ -644,7 +667,7 @@ pub fn run() {
             drive_list, drive_download,
             myapps_list, myapps_analyze, myapps_add, myapps_update, myapps_remove, myapps_duplicate, myapps_reorder,
             myapps_check, myapps_uninstall, myapps_export, myapps_import, myapps_fetch_url, log_tail,
-            ad_state, ad_install,
+            ven_state, ven_install, ven_run, ven_remove,
             license_status, activate_key,
             save_settings, set_secret, logs_dir, export_log
         ])

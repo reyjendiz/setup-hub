@@ -18,7 +18,7 @@ pub struct TweakState {
     pub detail: String,
 }
 
-pub const IDS: [&str; 5] = ["mouse_speed", "mouse_precision", "power_plan", "hibernate", "fast_startup"];
+pub const IDS: [&str; 6] = ["mouse_speed", "mouse_precision", "power_plan", "print_screen", "hibernate", "fast_startup"];
 
 fn state_path() -> std::path::PathBuf {
     util::app_dir().join("tweaks.json")
@@ -227,6 +227,44 @@ async fn power_revert() -> Result<()> {
     forget("power_plan")
 }
 
+// ---------- Print Screen ----------
+
+const KEYBOARD_KEY: &str = r"Control Panel\Keyboard";
+const PRTSC_VALUE: &str = "PrintScreenKeyForSnippingEnabled";
+
+fn print_screen_value() -> Option<u32> {
+    RegKey::predef(HKEY_CURRENT_USER).open_subkey(KEYBOARD_KEY).and_then(|k| k.get_value::<u32, _>(PRTSC_VALUE)).ok()
+}
+
+/// Whether Print Screen opens Snipping Tool. Unset means on for Windows 11, off for Windows 10.
+pub fn snipping_on_print_screen(value: Option<u32>, build: u32) -> bool {
+    value.map_or(build >= 22000, |v| v != 0)
+}
+
+/// Frees the key for a screenshot app (Flameshot registers Print Screen itself, which fails while
+/// Windows hands the key to Snipping Tool).
+fn print_screen_apply() -> Result<()> {
+    let prev = print_screen_value();
+    remember("print_screen", json!({ "value": prev }))?;
+    RegKey::predef(HKEY_CURRENT_USER).create_subkey(KEYBOARD_KEY)?.0.set_value(PRTSC_VALUE, &0u32)?;
+    tracing::info!("tweak print_screen: {PRTSC_VALUE} {prev:?} -> 0");
+    Ok(())
+}
+
+fn print_screen_revert() -> Result<()> {
+    let s = saved();
+    let old = s.get("print_screen").context("nothing to revert")?;
+    let k = RegKey::predef(HKEY_CURRENT_USER).create_subkey(KEYBOARD_KEY)?.0;
+    match old["value"].as_u64() {
+        Some(v) => k.set_value(PRTSC_VALUE, &(v as u32))?,
+        None => {
+            let _ = k.delete_value(PRTSC_VALUE);
+        }
+    }
+    tracing::info!("tweak print_screen: reverted to {old}");
+    forget("print_screen")
+}
+
 // ---------- optional toggles ----------
 
 fn hiberboot_key() -> Result<RegKey> {
@@ -247,6 +285,15 @@ pub async fn state(id: &str) -> Result<TweakState> {
         "mouse_speed" => mouse_state("mouse_speed"),
         "mouse_precision" => mouse_state("mouse_precision"),
         "power_plan" => power_state().await,
+        "print_screen" => {
+            let snipping = snipping_on_print_screen(print_screen_value(), crate::gpu::windows_build().await);
+            Ok(TweakState {
+                id: "print_screen",
+                applied: !snipping,
+                can_revert: saved().get("print_screen").is_some(),
+                detail: if snipping { "on".into() } else { "off".into() },
+            })
+        }
         "hibernate" => {
             let on = hibernation_enabled();
             Ok(TweakState { id: "hibernate", applied: !on, can_revert: !on, detail: if on { "on".into() } else { "off".into() } })
@@ -263,6 +310,7 @@ pub async fn apply(id: &str) -> Result<()> {
     match id {
         "mouse_speed" | "mouse_precision" => mouse_apply(id),
         "power_plan" => power_apply().await,
+        "print_screen" => print_screen_apply(),
         "hibernate" => powercfg(&["/hibernate", "off"]).await.map(|_| tracing::info!("tweak hibernate: off")),
         "fast_startup" => {
             hiberboot_key()?.set_value("HiberbootEnabled", &0u32)?;
@@ -277,6 +325,7 @@ pub async fn revert(id: &str) -> Result<()> {
     match id {
         "mouse_speed" | "mouse_precision" => mouse_revert(id),
         "power_plan" => power_revert().await,
+        "print_screen" => print_screen_revert(),
         "hibernate" => powercfg(&["/hibernate", "on"]).await.map(|_| tracing::info!("tweak hibernate: on")),
         "fast_startup" => {
             hiberboot_key()?.set_value("HiberbootEnabled", &1u32)?;
@@ -295,6 +344,14 @@ mod tests {
     fn fifth_notch_is_eight() {
         assert_eq!(NOTCHES[TARGET_NOTCH - 1], 8);
         assert_eq!(NOTCHES[5], 10, "Windows default is the 6th notch");
+    }
+
+    #[test]
+    fn print_screen_default_depends_on_windows_version() {
+        assert!(snipping_on_print_screen(None, 26100));
+        assert!(!snipping_on_print_screen(None, 19045));
+        assert!(!snipping_on_print_screen(Some(0), 26100));
+        assert!(snipping_on_print_screen(Some(1), 19045));
     }
 
     #[test]

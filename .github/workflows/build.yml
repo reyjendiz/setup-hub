@@ -24,13 +24,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: |
+            src-tauri
+            ven
 
       - run: pnpm install --frozen-lockfile
 
       - name: Unit tests
         run: cargo test --lib
         working-directory: src-tauri
+
+      - name: Ven unit tests
+        run: cargo test --locked
+        working-directory: ven
 
       - name: Build (portable exe + NSIS installer)
         run: pnpm tauri build

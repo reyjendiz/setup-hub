@@ -23,6 +23,7 @@ const DEFAULT_MSG: Record<string, Key> = {
   "default-signin": "apps.default.signin",
   "default-signin-home": "apps.default.signinHome",
   "default-settings": "apps.default.settings",
+  "default-print-screen": "apps.default.printScreen",
 };
 
 export default function Apps() {
@@ -221,8 +222,12 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
       {defaultMsg && (
         <div className="flex items-center justify-between gap-2">
           <p className="text-[12px] text-[var(--secondary)]">{t(defaultMsg, { name: item.name })}</p>
-          {job?.message !== "default-signin" && (
-            <Button variant="plain" className="shrink-0" onClick={() => api.defaultsSettingsUri(item.id).then(openUrl)}>
+          {(job?.message === "default-settings" || job?.message === "default-signin-home") && (
+            <Button
+              variant="plain"
+              className="shrink-0"
+              onClick={() => (item.print_screen ? openUrl("ms-settings:easeofaccess-keyboard") : api.defaultsSettingsUri(item.id).then(openUrl))}
+            >
               {t("tweaks.openSettings")}
             </Button>
           )}

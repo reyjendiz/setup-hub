@@ -13,19 +13,19 @@ import MyApps from "./pages/MyApps";
 import Files from "./pages/Files";
 import Tweaks from "./pages/Tweaks";
 import Drivers from "./pages/Drivers";
-import AD from "./pages/AD";
+import Ven from "./pages/Ven";
 import Activation from "./pages/Activation";
 import SettingsPage from "./pages/Settings";
 import { listen } from "@tauri-apps/api/event";
 
-export type Page = "apps" | "myapps" | "files" | "tweaks" | "drivers" | "ad" | "activation" | "settings";
+export type Page = "apps" | "myapps" | "files" | "tweaks" | "drivers" | "ven" | "activation" | "settings";
 const NAV: { id: Page; icon: typeof AppWindow }[] = [
   { id: "apps", icon: AppWindow },
   { id: "myapps", icon: LayoutGrid },
   { id: "files", icon: FolderDown },
   { id: "tweaks", icon: SlidersHorizontal },
   { id: "drivers", icon: Cpu },
-  { id: "ad", icon: Sparkles },
+  { id: "ven", icon: Sparkles },
   { id: "activation", icon: KeyRound },
   { id: "settings", icon: Gear },
 ];
@@ -198,7 +198,7 @@ function Shell({ boot }: { boot: Boot }) {
                   {page === "files" && <Files />}
                   {page === "tweaks" && <Tweaks />}
                   {page === "drivers" && <Drivers />}
-                  {page === "ad" && <AD />}
+                  {page === "ven" && <Ven />}
                   {page === "activation" && <Activation />}
                   {page === "settings" && <SettingsPage />}
                 </motion.div>
@@ -376,7 +376,7 @@ function CommandPalette({ close }: { close: () => void }) {
           run: () => (go("apps"), installed[it.id] === undefined && api.install([it.id])),
         });
     }
-    for (const id of ["mouse_speed", "mouse_precision", "power_plan"] as const) {
+    for (const id of ["mouse_speed", "mouse_precision", "power_plan", "print_screen"] as const) {
       const label = t(`tweaks.${id}.title` as Key);
       if (ql && label.toLowerCase().includes(ql)) r.push({ key: id, label, hint: t("nav.tweaks"), run: () => go("tweaks") });
     }

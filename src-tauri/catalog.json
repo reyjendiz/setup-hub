@@ -261,6 +261,17 @@
       "note": { "en": "Becomes the default player for video, audio and playlists.", "ru": "Станет плеером по умолчанию для видео, аудио и плейлистов." }
     },
     {
+      "id": "flameshot", "name": "Flameshot", "category": "productivity",
+      "description": { "en": "Screenshots with arrows, blur, text and upload", "ru": "Скриншоты со стрелками, размытием, текстом и загрузкой" },
+      "winget_id": "Flameshot.Flameshot",
+      "source": { "type": "github_release", "repo": "flameshot-org/flameshot", "asset_regex": "^Flameshot-[0-9.]+-win64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^Flameshot", "path": "%ProgramFiles%\\Flameshot\\bin\\flameshot.exe" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"],
+      "print_screen": true,
+      "note": { "en": "Gets the Print Screen key (instead of Snipping Tool) and starts with Windows.", "ru": "Получает клавишу Print Screen (вместо «Ножниц») и запускается вместе с Windows." }
+    },
+    {
       "id": "git", "name": "Git", "category": "dev",
       "description": { "en": "Version control — Claude Code needs Git for Windows", "ru": "Контроль версий — нужен Claude Code (Git for Windows)" },
       "winget_id": "Git.Git",
