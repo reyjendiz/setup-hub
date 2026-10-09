@@ -90,16 +90,16 @@ export default function Tweaks() {
   );
 }
 
-/** Catalog apps that replace a Windows function (VLC → file types, Lightshot → Print Screen). */
+/** Catalog apps that replace a built-in Windows app (VLC, Chrome, PdfCraft). */
 function DefaultApps() {
-  const { t } = useT();
-  const { boot, installed } = useApp();
+  const { t, lang } = useT();
+  const { boot, installed, items } = useApp();
   const [states, setStates] = useState<DefaultState[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const load = () => api.defaultsStates().then(setStates, (e) => setErrors({ load: String(e) }));
-  // Re-read after installs: a fresh VLC or Lightshot changes what can be applied.
+  // Re-read after installs: a freshly installed app changes what can be applied.
   useEffect(() => void load(), [installed]);
 
   const run = async (s: DefaultState, revert: boolean) => {
@@ -123,28 +123,27 @@ function DefaultApps() {
       {errors.load && <p className="selectable text-[12px] text-[var(--red)]">{errors.load}</p>}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-4">
         {states?.map((s) => {
-          const [n, total] = s.detail.split("/");
-          const now =
-            s.kind === "types" ? t("tweaks.types.detail", { n, total }) : s.detail === "app" ? s.name : t("tweaks.print_screen.snipping");
-          const desc =
-            s.kind === "print_screen"
-              ? t("tweaks.print_screen.desc", { name: s.name })
-              : t(boot.os_build >= 22621 ? "tweaks.types.desc" : "tweaks.types.desc10", { name: s.name });
+          const what = items.find((i) => i.id === s.id)?.defaults?.what[lang] ?? "";
+          const desc = t(boot.os_build >= 22621 ? "tweaks.types.desc" : "tweaks.types.desc10", { name: s.name, what });
           const err = errors[s.id];
           return (
             <Card key={s.id} className="flex flex-col gap-3 p-4">
               <div className="flex items-start gap-3">
-                <AppIcon id={s.id.split(":")[0]} name={s.name} size={40} />
+                <AppIcon id={s.id} name={s.name} size={40} />
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold">{t(`tweaks.${s.kind}.title` as Key, { name: s.name })}</div>
+                  <div className="font-semibold">{t("tweaks.types.title", { name: s.name })}</div>
                   <p className="text-[13px] text-[var(--secondary)]">{desc}</p>
-                  {s.kind === "types" && s.home && !s.applied && <p className="mt-1 text-[12px] text-[var(--orange)]">{t("tweaks.types.home")}</p>}
+                  {s.home && !s.applied && <p className="mt-1 text-[12px] text-[var(--orange)]">{t("tweaks.types.home")}</p>}
                 </div>
               </div>
               {err && <p className="selectable text-[12px] text-[var(--red)]">{err}</p>}
               <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
                 <span className="whitespace-nowrap text-[13px] text-[var(--secondary)]">
-                  {!s.installed ? t("tweaks.notInstalled", { name: s.name }) : s.pending ? <Badge tone="orange">{t("tweaks.pending")}</Badge> : t("tweaks.current", { v: now })}
+                  {!s.installed
+                    ? t("tweaks.notInstalled", { name: s.name })
+                    : s.pending
+                      ? <Badge tone="orange">{t("tweaks.pending")}</Badge>
+                      : t("tweaks.current", { v: t("tweaks.types.detail", { n: s.ours, total: s.total }) })}
                 </span>
                 <div className="flex gap-2">
                   {s.can_revert && (

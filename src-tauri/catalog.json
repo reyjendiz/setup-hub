@@ -2,6 +2,22 @@
   "version": 1,
   "items": [
     {
+      "id": "chrome", "name": "Google Chrome", "category": "network",
+      "description": { "en": "Google's web browser", "ru": "Браузер от Google" },
+      "winget_id": "Google.Chrome",
+      "source": { "type": "direct", "url": "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^Google Chrome$" },
+      "allowed_hosts": ["google.com", "gvt1.com"],
+      "publisher": "Google",
+      "defaults": {
+        "app": "Google Chrome",
+        "types": ["http", "https", ".htm", ".html", ".shtml", ".xht", ".xhtml"],
+        "what": { "en": "Web links and web pages", "ru": "Ссылки и веб-страницы" }
+      },
+      "note": { "en": "Becomes the default browser.", "ru": "Станет браузером по умолчанию." }
+    },
+    {
       "id": "zoom", "name": "Zoom", "category": "communication",
       "description": { "en": "Video meetings and chat", "ru": "Видеовстречи и чат" },
       "winget_id": "Zoom.Zoom",
@@ -159,12 +175,62 @@
       "allowed_hosts": ["github.com", "githubusercontent.com"]
     },
     {
-      "id": "pdfcraft", "name": "PDFCraft", "category": "productivity",
-      "description": { "en": "Open-source PDF editor (Rust)", "ru": "Открытый PDF-редактор на Rust" },
+      "id": "photocraft", "name": "PhotoCraft", "category": "creative",
+      "description": { "en": "Image editor, like Photoshop (ArtCraft)", "ru": "Редактор изображений, как Photoshop (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/photocraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^PhotoCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "vectorcraft", "name": "VectorCraft", "category": "creative",
+      "description": { "en": "Vector illustration, like Illustrator (ArtCraft)", "ru": "Векторная графика, как Illustrator (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/vectorcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^VectorCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "filmcraft", "name": "FilmCraft", "category": "creative",
+      "description": { "en": "Video editor, like Premiere (ArtCraft)", "ru": "Видеоредактор, как Premiere (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/filmcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^FilmCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "lightcraft", "name": "LightCraft", "category": "creative",
+      "description": { "en": "Photo library and RAW developer, like Lightroom (ArtCraft)", "ru": "Фотоархив и RAW-проявка, как Lightroom (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/lightcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^LightCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "effectcraft", "name": "EffectCraft", "category": "creative",
+      "description": { "en": "Motion graphics and effects, like After Effects (ArtCraft)", "ru": "Анимация и эффекты, как After Effects (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/effectcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^EffectCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "designcraft", "name": "DesignCraft", "category": "creative",
+      "description": { "en": "Page layout, like InDesign (ArtCraft)", "ru": "Вёрстка, как InDesign (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/designcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "^DesignCraft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "pdfcraft", "name": "PdfCraft", "category": "creative",
+      "description": { "en": "PDF editor, like Acrobat (ArtCraft)", "ru": "PDF-редактор, как Acrobat (ArtCraft)" },
       "source": { "type": "github_release", "repo": "storytold/pdfcraft", "asset_regex": "windows-x64\\.msi$" },
       "silent_args": ["/qn", "/norestart"],
       "detect": { "display_name": "(?i)^pdf ?craft" },
-      "allowed_hosts": ["github.com", "githubusercontent.com"]
+      "allowed_hosts": ["github.com", "githubusercontent.com"],
+      "defaults": { "app": "PdfCraft", "types": [".pdf"], "what": { "en": "PDF files", "ru": "PDF-файлы" } },
+      "note": { "en": "Becomes the default app for PDF files.", "ru": "Станет приложением по умолчанию для PDF." }
     },
     {
       "id": "qbittorrent", "name": "qBittorrent", "category": "network",
@@ -185,6 +251,7 @@
       "allowed_hosts": [],
       "defaults": {
         "app": "VLC",
+        "what": { "en": "Video, audio and playlist files", "ru": "Видео, аудио и плейлисты" },
         "types": [
           ".3ga", ".669", ".a52", ".aac", ".ac3", ".adt", ".adts", ".aif", ".aifc", ".aiff", ".amr", ".aob", ".ape", ".au", ".caf", ".cda", ".dts", ".flac", ".it", ".m4a", ".m4p", ".mka", ".mlp", ".mod", ".mp1", ".mp2", ".mp3", ".mpc", ".mpga", ".oga", ".oma", ".opus", ".qcp", ".ra", ".rmi", ".s3m", ".snd", ".spx", ".tta", ".voc", ".vqf", ".w64", ".wav", ".wma", ".wv", ".xa", ".xm",
           ".3g2", ".3gp", ".3gp2", ".3gpp", ".amv", ".asf", ".avi", ".bik", ".dav", ".divx", ".drc", ".dv", ".dvr-ms", ".evo", ".f4v", ".flv", ".gvi", ".gxf", ".m1v", ".m2t", ".m2ts", ".m2v", ".m4v", ".mkv", ".mov", ".mp2v", ".mp4", ".mp4v", ".mpa", ".mpe", ".mpeg", ".mpeg1", ".mpeg2", ".mpeg4", ".mpg", ".mpv2", ".mts", ".mtv", ".mxf", ".nsv", ".nuv", ".ogg", ".ogm", ".ogv", ".ogx", ".rec", ".rm", ".rmvb", ".rpl", ".thp", ".tod", ".tp", ".ts", ".tts", ".vob", ".vro", ".webm", ".wmv", ".wtv", ".xesc",
@@ -194,16 +261,59 @@
       "note": { "en": "Becomes the default player for video, audio and playlists.", "ru": "Станет плеером по умолчанию для видео, аудио и плейлистов." }
     },
     {
-      "id": "lightshot", "name": "Lightshot", "category": "productivity",
-      "description": { "en": "Screenshot of any area in two clicks", "ru": "Скриншот любой области в два клика" },
-      "winget_id": "Skillbrains.Lightshot",
-      "source": { "type": "direct", "url": "https://app.prntscr.com/build/setup-lightshot.exe" },
-      "silent_args": ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"],
-      "detect": { "display_name": "^Lightshot" },
-      "allowed_hosts": ["prntscr.com"],
-      "publisher": "Skillbrains",
-      "defaults": { "print_screen": true, "start": "Lightshot.exe" },
-      "note": { "en": "Takes over the Print Screen key from Snipping Tool.", "ru": "Забирает клавишу Print Screen у «Ножниц»." }
+      "id": "git", "name": "Git", "category": "dev",
+      "description": { "en": "Version control — Claude Code needs Git for Windows", "ru": "Контроль версий — нужен Claude Code (Git for Windows)" },
+      "winget_id": "Git.Git",
+      "source": { "type": "github_release", "repo": "git-for-windows/git", "asset_regex": "^Git-[0-9.]+-64-bit\\.exe$" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES", "/SP-"],
+      "detect": { "display_name": "^Git$|^Git version " },
+      "allowed_hosts": ["github.com", "githubusercontent.com"],
+      "publisher": "Johannes Schindelin"
+    },
+    {
+      "id": "nodejs", "name": "Node.js LTS", "category": "dev",
+      "description": { "en": "JavaScript runtime with npm — for Claude Code and MCP servers", "ru": "JavaScript и npm — для Claude Code и MCP-серверов" },
+      "winget_id": "OpenJS.NodeJS.LTS",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Node\\.js$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "python", "name": "Python 3.14", "category": "dev",
+      "description": { "en": "Python, added to PATH — for Claude Code's scripts and tools", "ru": "Python с добавлением в PATH — для скриптов и инструментов Claude Code" },
+      "winget_id": "Python.Python.3.14",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Python 3\\.14\\.[0-9]+ \\(64-bit\\)$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "pylauncher", "name": "Python Launcher", "category": "dev",
+      "description": { "en": "The py command: picks the right Python version", "ru": "Команда py: запускает нужную версию Python" },
+      "winget_id": "Python.Launcher",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^Python Launcher$" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "uv", "name": "uv", "category": "dev",
+      "description": { "en": "Fast Python package and project manager (uv, uvx) — used by MCP servers", "ru": "Быстрый менеджер пакетов Python (uv, uvx) — нужен MCP-серверам" },
+      "winget_id": "astral-sh.uv",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^uv$", "path": "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\uv.exe" },
+      "allowed_hosts": []
+    },
+    {
+      "id": "ffmpeg", "name": "FFmpeg", "category": "dev",
+      "description": { "en": "Command-line audio and video toolkit (ffmpeg, ffprobe)", "ru": "Консольные инструменты для видео и аудио (ffmpeg, ffprobe)" },
+      "winget_id": "Gyan.FFmpeg",
+      "source": { "type": "winget" },
+      "silent_args": [],
+      "detect": { "display_name": "^FFmpeg$", "path": "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\ffmpeg.exe" },
+      "allowed_hosts": []
     },
     {
       "id": "nanazip", "name": "NanaZip", "category": "system",
@@ -233,17 +343,6 @@
       "detect": { "display_name": "^Viber$" },
       "allowed_hosts": ["viber.com"],
       "publisher": "Viber"
-    },
-    {
-      "id": "uninstalltool", "name": "Uninstall Tool", "category": "system",
-      "description": { "en": "Removes apps with all their leftovers", "ru": "Удаляет программы вместе с остатками" },
-      "winget_id": "CrystalIDEASoftware.UninstallTool",
-      "source": { "type": "github_release", "repo": "crystalidea/uninstall-tool", "asset_regex": "^uninstalltool_setup\\.exe$" },
-      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
-      "detect": { "display_name": "^Uninstall Tool" },
-      "allowed_hosts": ["github.com", "githubusercontent.com"],
-      "publisher": "CrystalBit Solutions",
-      "note": { "en": "Trial — enter your own license in the app.", "ru": "Пробная версия — лицензию вводите в самой программе." }
     },
     {
       "id": "jonsbo", "name": "JONSBO PC Monitor", "category": "system",

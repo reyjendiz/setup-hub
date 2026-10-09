@@ -6,14 +6,15 @@
 
 One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
 
-- **Apps** — silent install of 25 apps (winget first, signed vendor installer as fallback), "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection.
+- **Apps** — silent install of 36 apps in two tabs, **Programs** and **Games** (winget first, signed vendor installer as fallback): "Install all", a **For Claude Code** group (Git, Node.js, Python + launcher, uv, FFmpeg) with its own install button, the ArtCraft Crafting Apps, multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection, **Update / Update all** for installed apps.
 - **My Apps** — add any program yourself by pasting a link (GitHub repo, direct file, winget ID, Microsoft Store, web page); it then installs with one click like the built-in apps.
 - **Files** — list and download the shared Google Drive folder (no sign-in), nested folders, resume. Nothing is run or extracted.
-- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a Windows function (VLC for media files, Lightshot on Print Screen). Each one reverts.
-- **Drivers** — latest WHQL Game Ready driver for the detected NVIDIA GPU (NVIDIA App fallback); AMD/Intel get their official pages.
+- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup; **Default apps** for catalog apps that replace a built-in Windows app (Chrome as the browser, VLC for media, PdfCraft for PDFs). Each one reverts.
+- **Drivers** — reads the graphics card from Windows (WMI, then the device registry) and installs the latest WHQL Game Ready driver for it; when Windows can't tell the model (fresh install on the Basic Display Adapter, detection or NVIDIA's lookup failing) it installs the **NVIDIA App**, which detects the card itself. AMD/Intel get their official pages.
 - **AD** — installs your Vencord launcher (bundled in the exe).
 - **Activation** — license status, *Open Activation settings*, *Enter my own key*. No KMS, no third-party keys.
-- **Settings** — EN/RU, theme, folders, parallel downloads, GitHub token / Google API key (Credential Manager), remote catalog, log export.
+- **Settings** — EN/RU, theme, folders, parallel downloads, GitHub token / Google API key (Credential Manager), remote catalog, **updates** (check on launch, check now), log export.
+- **Auto-update** — on launch Setup Hub checks its own GitHub releases (*Update and restart*) and the apps it installed (*Update all*).
 
 ## Build
 
@@ -26,7 +27,7 @@ pnpm tauri build
 
 Outputs:
 - `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and AD are embedded; requests admin via manifest).
-- `src-tauri/target/release/bundle/nsis/Setup Hub_1.1.0_x64-setup.exe` — optional installer.
+- `src-tauri/target/release/bundle/nsis/Setup Hub_1.2.0_x64-setup.exe` — optional installer.
 
 Other commands:
 
@@ -58,24 +59,28 @@ Exit codes 3010/1641 (and winget's "reboot required") collect into one *Restart 
 
 `src-tauri/catalog.json` is embedded. Set *Settings → Custom catalog URL* to a raw GitHub URL of your own copy to update links without rebuilding; the last good remote copy is cached and the embedded one is the offline fallback. A remote catalog is validated the same way (https only, URL host must be in that item's `allowed_hosts`).
 
-Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?, defaults?{app?, types[], print_screen, start?}`.
+Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?, defaults?{app, types[], what{en,ru}}`. Category `gaming` goes to the **Games** tab, `dev` to the **For Claude Code** group, everything else to **Programs**.
 
 See **[catalog-report.md](catalog-report.md)** for the verified URL, version, installer type, signer and silent switches of every item.
 
 ## Default apps
 
-Catalog apps that replace a built-in Windows function are made the default as part of their install, and get a card under **Tweaks → Default apps** (state, **Apply**, **Revert**, **Open Settings**):
+Catalog apps that replace a built-in Windows app are made the default as part of their install, and get a card under **Tweaks → Default apps** (state, **Apply**, **Revert**, **Open Settings**):
 
-| App | Replaces | How |
+| App | Replaces | Types |
 |---|---|---|
-| VLC media player | Media Player for 114 video, audio and playlist types | Windows' *default associations configuration* policy |
-| Lightshot | Snipping Tool on the Print Screen key | `PrintScreenKeyForSnippingEnabled` = 0, then Lightshot is started as the signed-in user |
+| Google Chrome | Edge as the browser | `http`, `https`, `.htm`, `.html`, `.shtml`, `.xht`, `.xhtml` |
+| VLC media player | Media Player | 114 video, audio and playlist types |
+| PdfCraft | Edge as the PDF reader | `.pdf` |
 
-**File types.** Windows protects each user's choice (UserChoice / UserChoiceLatest) with a hash that only Windows may write, so Setup Hub doesn't forge it. Instead it reads the ProgIds VLC registered (`RegisteredApplications\VLC` → `Capabilities\FileAssociations`, e.g. `.mkv` → `VLC.mkv`), writes them to `%ProgramData%\SetupHub\DefaultAssociations.xml` and points `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` at it. Windows applies it at the **next sign-in**. Every association is `Suggested="true"`, so on Windows 11 22H2+ it's applied once per `Version` (bumped on each Apply) and you can still pick another app later; Windows 10 re-applies it at every sign-in until you Revert. Only types VLC itself registered and the catalog lists are used — VLC also registers `.iso`, `.zip`, `.rar` and skin files, which it doesn't get. Revert removes VLC from the file (and the policy when it's empty); files keep opening in VLC until you choose another app. An associations policy configured by someone else is never overwritten — the card then offers Settings instead. Microsoft documents the policy for Pro/Enterprise/Education; on Home the card says it may be ignored and offers **Open Settings** (`ms-settings:defaultapps?registeredAppMachine=VLC`, VLC's own page on Windows 11).
+Windows protects each user's choice (UserChoice / UserChoiceLatest) with a hash that only Windows may write, so Setup Hub doesn't forge it. Instead it reads the ProgIds the app registered (`RegisteredApplications\VLC` → `Capabilities\FileAssociations` / `URLAssociations`, e.g. `.mkv` → `VLC.mkv`, `https` → `ChromeHTML`), writes them to `%ProgramData%\SetupHub\DefaultAssociations.xml` and points `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` at it. Windows applies it at the **next sign-in**. Every association is `Suggested="true"`, so on Windows 11 22H2+ it's applied once per `Version` (bumped on each Apply) and you can still pick another app later; Windows 10 re-applies it at every sign-in until you Revert. Only types the app itself registered *and* the catalog lists are used — VLC also registers `.iso`, `.zip`, `.rar` and skin files, Chrome `.pdf`, `mailto` and `ftp`; they don't get those. Revert removes the app from the file (and the policy when it's empty); files keep opening in it until you choose another app. An associations policy configured by someone else is never overwritten — the card then offers Settings instead. Microsoft documents the policy for Pro/Enterprise/Education; on Home the card says it may be ignored and offers **Open Settings** (the app's own page in Settings › Default apps on Windows 11).
 
-**Print Screen.** On Windows 11 the key opens Snipping Tool by default and never reaches Lightshot. The previous value is saved and restored on Revert (an absent value is deleted again). If Snipping Tool still opens, signing out and back in finishes it.
+Catalog schema: `defaults.app` (RegisteredApplications name), `defaults.types` (extensions, plus `http`/`https`; executables, scripts, `.lnk` and `.url` are rejected even from a remote catalog), `defaults.what` (EN/RU label for the card). My Apps entries can't carry defaults.
 
-Catalog schema: `defaults.app` (RegisteredApplications name), `defaults.types` (extensions; executables, scripts, `.lnk`, `.url`, `.htm(l)` are rejected even from a remote catalog), `defaults.print_screen`, `defaults.start` (a bare `.exe` name in the install folder). My Apps entries can't carry defaults.
+## Updates
+
+- **Setup Hub** — on launch (Settings → *Check for updates on launch*, on by default) it reads the latest release of `reyjendiz/setup-hub`. A newer version shows *Update and restart*: it downloads the release's `setup-hub.exe`, verifies it against the SHA-256 digest GitHub records for the asset (or a valid signature), renames the running exe to `setup-hub.old.exe`, puts the new one in its place and restarts into it (the old file is deleted on the next start). The release is looked up again when you click, so nothing from the UI decides what gets installed. Releases come from CI: pushing a `v*` tag builds and publishes `setup-hub.exe` + the installer.
+- **Apps** — `winget upgrade` (matched by package id, so any language works) for winget apps, the latest GitHub release vs. the installed version for apps installed from GitHub. Cards show `old → new` and **Update**; **Update all (n)** runs them through the normal install pipeline (winget upgrades in place, MSI/NSIS installers install over the old version). Apps from direct vendor links have no version to compare and are skipped.
 
 ## My Apps (add programs by link)
 
@@ -115,12 +120,14 @@ Runtime-only safety flags (`custom`, `reviewed`, `allow_unsigned`, `allow_http`)
 - **GearUP Booster** ships a custom 7-Zip SFX installer with no documented silent switch — *Needs your clicks*.
 - **JONSBO PC Monitor** (Jonsbo TH-360 LCD) is resolved from the TH-360 product page on jonsbo.com, so new versions are picked up automatically; the zip's NSIS setup must be signed by Dongguan Hongtai Technology (JONSBO's company) and runs with `/S`.
 - **VLC media player** installs through winget only (`VideoLAN.VLC`): download.videolan.org redirects to ~70 third-party mirrors, which a per-item host allow-list can't cover.
-- **Lightshot** installs through winget (`Skillbrains.Lightshot`), falling back to the vendor's `app.prntscr.com/build/setup-lightshot.exe` (Inno Setup, `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-`), whose signature must name Skillbrains.
+- **Google Chrome** installs through winget (`Google.Chrome`), falling back to Google's enterprise MSI (`googlechromestandaloneenterprise64.msi`, signed by Google).
+- **Claude Code toolchain**: Git (`Git.Git`, fallback: the signed Git for Windows release on GitHub), Node.js LTS, Python 3.14 (winget passes `PrependPath=1`), Python Launcher, uv and FFmpeg come from winget; uv and FFmpeg are winget "portable" packages, linked into `%LOCALAPPDATA%\Microsoft\WinGet\Links` on PATH.
+- **ArtCraft Crafting Apps** ([getartcraft.com/apps](https://getartcraft.com/apps)): PhotoCraft, VectorCraft, FilmCraft, LightCraft, EffectCraft, DesignCraft and PdfCraft, each the per-machine `…-windows-x64.msi` from its `storytold/*` GitHub release, checked against GitHub's SHA-256 digest. The ArtCraft studio app itself isn't in the catalog: it's not on that page, and its GitHub releases are drafts.
+- **macshot** (`sw33tLie/macshot`) is not included: it's a macOS-only Swift app (`.dmg` / Homebrew), with no Windows build.
 - **Astrum Play** is a web loader (`astrum-play.ru/loader/AstrumPlayLoader.exe`) with no silent mode — also *Needs your clicks*.
-- **PDFCraft** (`storytold/pdfcraft`) is a real desktop app with a signed Windows MSI and published SHA-256s, so it installs like the others.
 - **AutoLogon** is extracted to `%ProgramFiles%\SetupHub\Tools\Autologon` with a Start Menu shortcut and launched; Setup Hub never types credentials.
-- **NVIDIA**: product/series IDs come from `lookupValueSearch.aspx` (TypeID 3/4) matched against the WMI GPU name, then `AjaxDriverService DriverManualLookup` with `dch=1, isWHQL=1, upCRD=0` (Game Ready, not Studio). Installed with `-s -noreboot -noeula [-clean]`; a reboot is always offered after.
-- **Icons** are fetched once at build time (`pnpm icons`) and bundled, so runtime network calls stay limited to catalog, downloads, NVIDIA lookup and Drive. No telemetry, no updater.
+- **NVIDIA**: the card comes from WMI (`Win32_VideoController`), or from `HKLM\SYSTEM\CurrentControlSet\Enum\PCI` display devices if PowerShell/WMI fails. A card with PCI vendor `10DE` still on the Basic Display Adapter has no model name yet, so it gets the NVIDIA App. Otherwise product/series IDs come from `lookupValueSearch.aspx` (TypeID 3/4) matched against that name, then `AjaxDriverService DriverManualLookup` with `dch=1, isWHQL=1, upCRD=0` (Game Ready, not Studio). Installed with `-s -noreboot -noeula [-clean]`; a reboot is always offered after.
+- **Icons** are fetched once at build time (`pnpm icons`) and bundled, so runtime network calls stay limited to catalog, downloads, NVIDIA lookup and Drive. No telemetry; the only update traffic is the GitHub release check above.
 
 ## AD (from `F:\AD`)
 
@@ -146,7 +153,8 @@ src-tauri/src/
   download.rs  sig.rs    resumable downloads, SHA-256 + Authenticode policy
   installer.rs           winget, installers, de-elevation, unzip
   detect.rs              installed-state detection
-  defaults.rs            default apps: associations policy XML, Print Screen key
+  defaults.rs            default apps: associations policy XML
+  update.rs              self-update from GitHub Releases, app update checks
   tweaks.rs gpu.rs drive.rs ad.rs activation.rs settings.rs util.rs
   bin/verify_catalog.rs  build-time link verification → catalog-report.md
 QA-CHECKLIST.md          manual test plan for a clean Windows 11 VM

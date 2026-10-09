@@ -12,10 +12,12 @@ pub mod myapps;
 pub mod settings;
 pub mod sig;
 pub mod tweaks;
+pub mod update;
 pub mod util;
 #[cfg(test)]
 mod live_tests;
 
+use anyhow::Context;
 use engine::{emit, ev, Engine, JobEvent};
 use installer::Outcome;
 use serde::{Deserialize, Serialize};
@@ -154,31 +156,62 @@ async fn defaults_states(eng: Eng<'_>) -> CmdResult<Vec<defaults::DefaultState>>
     tokio::task::spawn_blocking(move || defaults::states(&items, build)).await.map_err(|e| e.to_string())
 }
 
-/// `id` is "<item id>:<kind>" as returned by defaults_states.
-fn default_target(eng: &Engine, id: &str) -> CmdResult<(catalog::Item, String)> {
-    let (item, kind) = id.split_once(':').ok_or("bad default id")?;
-    let it = eng.catalog.read().unwrap().items.iter().find(|i| i.id == item).cloned().ok_or("unknown app")?;
-    Ok((it, kind.to_string()))
+fn default_target(eng: &Engine, id: &str) -> CmdResult<catalog::Item> {
+    eng.catalog.read().unwrap().items.iter().find(|i| i.id == id && i.defaults.is_some()).cloned().ok_or_else(|| "unknown app".into())
 }
 
 #[tauri::command]
 fn defaults_apply(eng: Eng<'_>, id: String) -> CmdResult<defaults::Applied> {
-    let (it, kind) = default_target(&eng, &id)?;
-    defaults::apply(&it, &kind).map_err(err)
+    defaults::apply(&default_target(&eng, &id)?).map_err(err)
 }
 
 #[tauri::command]
 fn defaults_revert(eng: Eng<'_>, id: String) -> CmdResult<()> {
-    let (it, kind) = default_target(&eng, &id)?;
-    defaults::revert(&it, &kind).map_err(err)
+    defaults::revert(&default_target(&eng, &id)?).map_err(err)
 }
 
 /// Settings page for a card's install-time message ("Open Settings" when it couldn't be automated).
 #[tauri::command]
 async fn defaults_settings_uri(eng: Eng<'_>, id: String) -> CmdResult<String> {
-    let (it, kind) = default_target(&eng, &id)?;
-    let d = it.defaults.ok_or("no defaults")?;
-    Ok(defaults::settings_uri(&d, &kind, gpu::windows_build().await))
+    let d = default_target(&eng, &id)?.defaults.ok_or("no defaults")?;
+    Ok(defaults::settings_uri(&d, gpu::windows_build().await))
+}
+
+// ---------- updates ----------
+
+#[tauri::command]
+async fn check_self_update() -> CmdResult<Option<update::SelfUpdate>> {
+    update::check_self(settings::get_secret("github_token").as_deref()).await.map_err(err)
+}
+
+/// Downloads and swaps in the new Setup Hub, then restarts into it. The release is looked up again
+/// here rather than taken from the UI, so only GitHub's own answer decides what gets installed.
+#[tauri::command]
+fn apply_self_update(app: AppHandle, eng: Eng<'_>) {
+    let eng = eng.inner().clone();
+    tauri::async_runtime::spawn(async move {
+        let a = app.clone();
+        engine::job(&app, &eng, "self-update", "Setup Hub", move |cancel| async move {
+            emit(&a, ev("self-update", "resolving"));
+            let u = update::check_self(settings::get_secret("github_token").as_deref()).await?.context("Setup Hub is already up to date")?;
+            emit(&a, JobEvent { progress: Some(0.0), ..ev("self-update", "downloading") });
+            let exe = update::apply_self(&u, &cancel, &|p| emit(&a, JobEvent { progress: p, ..ev("self-update", "downloading") })).await?;
+            update::restart_into(&exe)?;
+            let a2 = a.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                a2.exit(0);
+            });
+            Ok((Outcome::Ok, Some(u.version.clone()), None))
+        })
+        .await
+    });
+}
+
+#[tauri::command]
+async fn check_app_updates(eng: Eng<'_>) -> CmdResult<Vec<update::AppUpdate>> {
+    let items = eng.catalog.read().unwrap().items.clone();
+    Ok(update::check_apps(&items, settings::get_secret("github_token").as_deref()).await)
 }
 
 // ---------- GPU ----------
@@ -189,23 +222,52 @@ struct GpuInfo {
     nvidia_latest: Option<gpu::DriverInfo>,
     nvidia_error: Option<String>,
     update_available: bool,
+    /// Windows couldn't tell us the graphics cards (WMI and the registry both failed).
+    detect_error: Option<String>,
+    /// Install goes through the NVIDIA App, which finds the card and driver itself.
+    use_nvidia_app: bool,
+}
+
+/// What Windows says about the NVIDIA card: Ok(Some(model)) to look its driver up, Ok(None) when the
+/// model is unknown (no driver yet, or detection failed) — the NVIDIA App handles that — Err when
+/// Windows reports graphics cards and none of them is NVIDIA.
+async fn nvidia_model() -> anyhow::Result<Option<String>> {
+    match gpu::detect().await {
+        Ok(gpus) => match gpus.iter().find(|g| g.vendor == gpu::Vendor::Nvidia) {
+            Some(g) if !g.driver_missing => Ok(Some(g.name.clone())),
+            Some(_) => Ok(None),
+            None if gpus.is_empty() => Ok(None),
+            None => anyhow::bail!("No NVIDIA GPU detected — nothing to install"),
+        },
+        Err(e) => {
+            tracing::warn!("GPU detection failed ({e:#}); the NVIDIA App will detect the card");
+            Ok(None)
+        }
+    }
 }
 
 #[tauri::command]
 async fn gpu_info() -> CmdResult<GpuInfo> {
-    let gpus = gpu::detect().await.map_err(err)?;
+    let (gpus, detect_error) = match gpu::detect().await {
+        Ok(g) => (g, None),
+        Err(e) => (vec![], Some(format!("{e:#}"))),
+    };
     let nv = gpus.iter().find(|g| g.vendor == gpu::Vendor::Nvidia).cloned();
     let (mut latest, mut error, mut update) = (None, None, false);
-    if let Some(g) = nv {
+    let mut use_app = detect_error.is_some() || nv.as_ref().is_some_and(|g| g.driver_missing);
+    if let Some(g) = nv.filter(|g| !g.driver_missing) {
         match gpu::latest_nvidia(&g.name).await {
             Ok(d) => {
                 update = g.display_version.as_deref().is_none_or(|cur| gpu::is_newer(&d.version, cur));
                 latest = Some(d);
             }
-            Err(e) => error = Some(format!("{e:#}")),
+            Err(e) => {
+                error = Some(format!("{e:#}"));
+                use_app = true;
+            }
         }
     }
-    Ok(GpuInfo { gpus, nvidia_latest: latest, nvidia_error: error, update_available: update })
+    Ok(GpuInfo { gpus, nvidia_latest: latest, nvidia_error: error, update_available: update, detect_error, use_nvidia_app: use_app })
 }
 
 #[tauri::command]
@@ -214,10 +276,13 @@ fn install_nvidia(app: AppHandle, eng: Eng<'_>, clean: bool) {
     tauri::async_runtime::spawn(async move {
         let (a, e) = (app.clone(), eng.clone());
         engine::job(&app, &eng, "nvidia", "NVIDIA driver", move |cancel| async move {
-            let gpus = gpu::detect().await?;
-            let g = gpus.iter().find(|g| g.vendor == gpu::Vendor::Nvidia).ok_or_else(|| anyhow::anyhow!("No NVIDIA GPU detected — nothing to install"))?;
+            let model = nvidia_model().await?;
             emit(&a, ev("nvidia", "resolving"));
-            match gpu::latest_nvidia(&g.name).await {
+            let lookup = match &model {
+                Some(m) => gpu::latest_nvidia(m).await,
+                None => Err(anyhow::anyhow!("Windows doesn't know the card's model yet")),
+            };
+            match lookup {
                 Ok(d) => {
                     let f = engine::fetch_verified(&a, &e, "nvidia", &d.url, &gpu::nv_hosts(), None, Some("NVIDIA"), &cancel).await?;
                     let _slot = e.install_slot().await;
@@ -237,7 +302,7 @@ fn install_nvidia(app: AppHandle, eng: Eng<'_>, clean: bool) {
                     Ok((Outcome::Reboot, Some(d.version), None))
                 }
                 Err(err) => {
-                    tracing::warn!("NVIDIA lookup failed ({err:#}); falling back to NVIDIA App");
+                    tracing::info!("no driver from the system's GPU info ({err:#}); installing the NVIDIA App, which detects the card itself");
                     let url = gpu::nvidia_app_url().await?;
                     let f = engine::fetch_verified(&a, &e, "nvidia", &url, &gpu::nv_hosts(), None, Some("NVIDIA"), &cancel).await?;
                     let _slot = e.install_slot().await;
@@ -553,6 +618,7 @@ fn export_log() -> CmdResult<String> {
 pub fn run() {
     init_logging();
     tracing::info!("Setup Hub {} starting", env!("CARGO_PKG_VERSION"));
+    update::cleanup_old();
     let st = settings::load();
     let (cat, origin) = tauri::async_runtime::block_on(catalog::load(&st.catalog_url));
     let eng = Arc::new(Engine::new(cat, origin, st.parallel_downloads));
@@ -573,6 +639,7 @@ pub fn run() {
             install, cancel, reboot_pending, restart_now,
             tweak_states, tweak_apply, tweak_revert,
             defaults_states, defaults_apply, defaults_revert, defaults_settings_uri,
+            check_self_update, apply_self_update, check_app_updates,
             gpu_info, install_nvidia,
             drive_list, drive_download,
             myapps_list, myapps_analyze, myapps_add, myapps_update, myapps_remove, myapps_duplicate, myapps_reorder,

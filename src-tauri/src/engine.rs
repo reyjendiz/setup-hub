@@ -170,9 +170,9 @@ pub async fn install(app: AppHandle, eng: Arc<Engine>, id: String) {
         if it.needs_reboot {
             o = Outcome::Reboot;
         }
-        // Apps that replace a Windows function (VLC, Lightshot) become the default for it.
+        // Apps that replace a Windows function (VLC, Chrome, PdfCraft) become the default for it.
         if !it.custom && it.defaults.is_some() {
-            msg = defaults::after_install(&it).await.or(msg);
+            msg = defaults::after_install(&it).or(msg);
         }
         let version = detect::detect_one(&e2.item(&it.id).unwrap_or(it), &detect::uninstall_entries(), &detect::appx_packages());
         Ok((o, version, msg))

@@ -6,7 +6,7 @@ import catalog from "../src-tauri/catalog.json";
 
 mockWindows("main");
 document.documentElement.classList.add("no-mica"); // a browser has no Mica behind the page
-const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true, allow_http: false, my_apps_url: "" };
+const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true, allow_http: false, my_apps_url: "", check_updates: true };
 
 const fake = (id: string, interactive = false) => {
   let p = 0;
@@ -16,7 +16,7 @@ const fake = (id: string, interactive = false) => {
     else {
       clearInterval(tick);
       emit("job", { id, phase: "installing", message: interactive ? "needs-interaction" : null });
-      const message = id === "vlc" ? "default-signin" : id === "lightshot" ? "default-print-screen" : null;
+      const message = ["vlc", "chrome", "pdfcraft"].includes(id) ? "default-signin" : null;
       setTimeout(() => emit("job", id === "figma" ? { id, phase: "failed", message: "installer exited with code 1603 (0x00000643)" } : { id, phase: "done", reboot: id === "nordvpn", version: "1.0", message }), 1400);
     }
   }, 250);
@@ -88,16 +88,22 @@ mockIPC(
         ];
       case "defaults_states":
         return [
-          { id: "vlc:types", name: "VLC media player", kind: "types", installed: true, applied: false, pending: true, can_revert: true, detail: "0/114", home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=VLC" },
-          { id: "lightshot:print_screen", name: "Lightshot", kind: "print_screen", installed: false, applied: false, pending: false, can_revert: false, detail: "snipping", home: false, settings_uri: "ms-settings:easeofaccess-keyboard" },
+          { id: "chrome", name: "Google Chrome", installed: true, applied: true, pending: false, can_revert: true, ours: 7, total: 7, home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=Google%20Chrome" },
+          { id: "vlc", name: "VLC media player", installed: true, applied: false, pending: true, can_revert: true, ours: 0, total: 114, home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=VLC" },
+          { id: "pdfcraft", name: "PdfCraft", installed: false, applied: false, pending: false, can_revert: false, ours: 0, total: 1, home: false, settings_uri: "ms-settings:defaultapps" },
         ];
+      case "check_self_update":
+        return { version: "1.3.0", url: "https://github.com/reyjendiz/setup-hub/releases/download/v1.3.0/setup-hub.exe", sha256: null, notes_url: "" };
+      case "check_app_updates":
+        return [{ id: "steam", installed: "2.10.91.91", available: "2.11.0.4" }];
       case "defaults_apply":
         return "next_sign_in";
       case "defaults_settings_uri":
         return "ms-settings:defaultapps";
       case "gpu_info":
         return {
-          gpus: [{ name: "NVIDIA GeForce RTX 4080 SUPER", vendor: "Nvidia", driver_version: "32.0.16.1742", display_version: "617.42" }],
+          gpus: [{ name: "NVIDIA GeForce RTX 4080 SUPER", vendor: "Nvidia", driver_version: "32.0.16.1742", display_version: "617.42", driver_missing: false }],
+          use_nvidia_app: false,
           nvidia_latest: { version: "617.42", release_date: "Tue Oct 06, 2026", url: "", size: "990.85 MB", name: "GeForce Game Ready Driver" },
           update_available: false,
         };

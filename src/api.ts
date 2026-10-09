@@ -14,7 +14,7 @@ export interface Item {
   unelevated: boolean;
   needs_reboot: boolean;
   note?: I18n | null;
-  defaults?: { app?: string | null; types: string[]; print_screen: boolean; start?: string | null } | null;
+  defaults?: { app: string; types: string[]; what: I18n } | null;
 }
 export interface Settings {
   lang: "en" | "ru";
@@ -26,6 +26,7 @@ export interface Settings {
   clean_driver_install: boolean;
   allow_http: boolean;
   my_apps_url: string;
+  check_updates: boolean;
 }
 export interface Boot {
   items: Item[];
@@ -125,8 +126,11 @@ export const api = {
   tweakStates: () => invoke<TweakState[]>("tweak_states"),
   tweakApply: (id: string) => invoke<void>("tweak_apply", { id }),
   tweakRevert: (id: string) => invoke<void>("tweak_revert", { id }),
+  checkSelfUpdate: () => invoke<SelfUpdate | null>("check_self_update"),
+  applySelfUpdate: () => invoke<void>("apply_self_update"),
+  checkAppUpdates: () => invoke<AppUpdate[]>("check_app_updates"),
   defaultsStates: () => invoke<DefaultState[]>("defaults_states"),
-  defaultsApply: (id: string) => invoke<"next_sign_in" | "next_sign_in_home" | "use_settings" | "now">("defaults_apply", { id }),
+  defaultsApply: (id: string) => invoke<"next_sign_in" | "next_sign_in_home" | "use_settings">("defaults_apply", { id }),
   defaultsRevert: (id: string) => invoke<void>("defaults_revert", { id }),
   defaultsSettingsUri: (id: string) => invoke<string>("defaults_settings_uri", { id }),
   gpuInfo: () => invoke<GpuInfo>("gpu_info"),
@@ -156,23 +160,33 @@ export const api = {
   exportLog: () => invoke<string>("export_log"),
 };
 
-/** id is "<item id>:types" or "<item id>:print_screen". */
+export interface SelfUpdate { version: string; url: string; sha256?: string | null; notes_url: string }
+export interface AppUpdate { id: string; installed: string; available: string }
+
+/** One card per catalog app that replaces a built-in Windows app; id is the catalog item id. */
 export interface DefaultState {
   id: string;
   name: string;
-  kind: "types" | "print_screen";
   installed: boolean;
   applied: boolean;
   pending: boolean;
   can_revert: boolean;
-  detail: string;
+  ours: number;
+  total: number;
   home: boolean;
   settings_uri: string;
 }
 export interface TweakState { id: string; applied?: boolean; can_revert?: boolean; detail?: string; error?: string }
-export interface Gpu { name: string; vendor: "Nvidia" | "Amd" | "Intel" | "Other"; driver_version: string; display_version?: string | null }
+export interface Gpu { name: string; vendor: "Nvidia" | "Amd" | "Intel" | "Other"; driver_version: string; display_version?: string | null; driver_missing: boolean }
 export interface DriverInfo { version: string; release_date: string; url: string; size: string; name: string }
-export interface GpuInfo { gpus: Gpu[]; nvidia_latest?: DriverInfo | null; nvidia_error?: string | null; update_available: boolean }
+export interface GpuInfo {
+  gpus: Gpu[];
+  nvidia_latest?: DriverInfo | null;
+  nvidia_error?: string | null;
+  update_available: boolean;
+  detect_error?: string | null;
+  use_nvidia_app: boolean;
+}
 export interface DriveEntry { id: string; name: string; mime: string; is_folder: boolean; size?: number | null; path: string }
 export interface AdState { installed: boolean; discord: boolean; dotnet: boolean; vencord_cli: boolean; path: string }
 export interface License { name: string; description: string; status: number; partial_key: string; grace_minutes: number }

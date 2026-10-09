@@ -4,8 +4,8 @@ import {
   AppWindow, Cpu, FolderDown, KeyRound, LayoutGrid, Minus, Plus, Search, Settings as Gear, SlidersHorizontal, Square, Sparkles, X, Copy,
 } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { api, Boot, Item, MyApp, Settings } from "./api";
-import { Button, spring } from "./components";
+import { api, AppUpdate, Boot, Item, MyApp, SelfUpdate, Settings, useJob } from "./api";
+import { Button, ProgressRing, spring } from "./components";
 import { Key, LangCtx, makeT, useT } from "./i18n";
 import { AddSheet, EntrySheet, ImportSheet } from "./myapps/sheets";
 import Apps from "./pages/Apps";
@@ -45,6 +45,12 @@ interface AppCtxT {
   openAdd: (replace?: MyApp) => void;
   openEntry: (e: MyApp, review: boolean) => void;
   reviewImport: (entries: MyApp[], fromUrl?: boolean) => void;
+  /** Newer versions of installed catalog apps, by item id. */
+  appUpdates: Record<string, AppUpdate>;
+  selfUpdate: SelfUpdate | null;
+  /** null while a check runs; otherwise when the last one finished. */
+  updatesCheckedAt: Date | null | undefined;
+  checkUpdates: () => Promise<void>;
 }
 const AppCtx = createContext<AppCtxT>(null!);
 export const useApp = () => useContext(AppCtx);
@@ -80,6 +86,23 @@ function Shell({ boot }: { boot: Boot }) {
   const [entrySheet, setEntrySheet] = useState<{ id: string; review: boolean } | null>(null);
   const [importSheet, setImportSheet] = useState<{ entries: MyApp[]; fromUrl?: boolean } | null>(null);
   const t = useMemo(() => makeT(settings.lang), [settings.lang]);
+  const [appUpdates, setAppUpdates] = useState<Record<string, AppUpdate>>({});
+  const [selfUpdate, setSelfUpdate] = useState<SelfUpdate | null>(null);
+  const [selfDismissed, setSelfDismissed] = useState(false);
+  const [updatesCheckedAt, setUpdatesCheckedAt] = useState<Date | null | undefined>(undefined);
+  const selfJob = useJob("self-update");
+
+  const checkUpdates = useCallback(async () => {
+    setUpdatesCheckedAt(null);
+    const [self, apps] = await Promise.all([api.checkSelfUpdate().catch(() => null), api.checkAppUpdates().catch(() => [] as AppUpdate[])]);
+    setSelfUpdate(self);
+    setSelfDismissed(false);
+    setAppUpdates(Object.fromEntries(apps.map((u) => [u.id, u])));
+    setUpdatesCheckedAt(new Date());
+  }, []);
+  useEffect(() => {
+    if (boot.settings.check_updates) void checkUpdates();
+  }, [boot.settings.check_updates, checkUpdates]);
 
   useEffect(() => {
     api.myappsList().then((list) => {
@@ -110,9 +133,15 @@ function Shell({ boot }: { boot: Boot }) {
   useEffect(refreshInstalled, [refreshInstalled]);
 
   useEffect(() => {
-    const un = listen<{ phase: string; reboot: boolean }>("job", ({ payload }) => {
+    const un = listen<{ id: string; phase: string; reboot: boolean }>("job", ({ payload }) => {
       if (payload.phase === "done") {
         refreshInstalled();
+        // An updated app is current now.
+        setAppUpdates((u) => {
+          if (!(payload.id in u)) return u;
+          const { [payload.id]: _, ...rest } = u;
+          return rest;
+        });
         if (payload.reboot) api.rebootPending().then((r) => (setReboot(r), setRebootDismissed(false)));
       }
     });
@@ -143,6 +172,7 @@ function Shell({ boot }: { boot: Boot }) {
     openAdd: (replace) => setAddSheet({ replace }),
     openEntry: (e, review) => setEntrySheet({ id: e.id, review }),
     reviewImport: (entries, fromUrl) => setImportSheet({ entries, fromUrl }),
+    appUpdates, selfUpdate, updatesCheckedAt, checkUpdates,
   };
   const entry = entrySheet && myApps.find((a) => a.id === entrySheet.id);
 
@@ -172,6 +202,39 @@ function Shell({ boot }: { boot: Boot }) {
                   {page === "activation" && <Activation />}
                   {page === "settings" && <SettingsPage />}
                 </motion.div>
+              </AnimatePresence>
+              <AnimatePresence>
+                {selfUpdate && !selfDismissed && reboot.length === 0 && (
+                  <motion.div
+                    initial={{ y: 80, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 80, opacity: 0 }}
+                    transition={spring}
+                    role="alertdialog"
+                    aria-label={t("update.title", { v: selfUpdate.version })}
+                    className="absolute bottom-[76px] left-1/2 z-40 flex w-[min(560px,90%)] -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--card-border)] bg-[var(--sheet)] p-4 backdrop-blur-xl"
+                    style={{ boxShadow: "var(--shadow-hover)" }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold">{t("update.title", { v: selfUpdate.version })}</div>
+                      <div className={`text-[13px] ${selfJob?.phase === "failed" ? "selectable text-[var(--red)]" : "text-[var(--secondary)]"}`}>
+                        {selfJob?.phase === "failed" ? selfJob.message : t("update.body", { cur: boot.version })}
+                      </div>
+                    </div>
+                    {selfJob && ["queued", "resolving", "downloading", "verifying"].includes(selfJob.phase) ? (
+                      <Button disabled>
+                        <ProgressRing value={selfJob.phase === "downloading" ? selfJob.progress : null} /> {t("update.downloading")}
+                      </Button>
+                    ) : selfJob?.phase === "done" ? (
+                      <Button disabled>{t("update.restarting")}</Button>
+                    ) : (
+                      <>
+                        <Button variant="plain" onClick={() => setSelfDismissed(true)}>{t("reboot.later")}</Button>
+                        <Button variant="primary" onClick={() => api.applySelfUpdate()}>{t("update.now")}</Button>
+                      </>
+                    )}
+                  </motion.div>
+                )}
               </AnimatePresence>
               <AnimatePresence>
                 {reboot.length > 0 && !rebootDismissed && (

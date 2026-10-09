@@ -3,7 +3,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { ReactNode, useState } from "react";
 import { api } from "../api";
 import { useApp } from "../App";
-import { Button, Card, PageHeader, Toggle } from "../components";
+import { Button, Card, PageHeader, ProgressRing, Segmented, Toggle } from "../components";
 import { useT } from "../i18n";
 
 function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
@@ -26,24 +26,6 @@ function Line({ label, hint, children }: { label: string; hint?: string; childre
         {hint && <div className="text-[12px] text-[var(--secondary)]">{hint}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
-    </div>
-  );
-}
-
-function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-[var(--fill)] p-0.5 text-[13px] font-medium">
-      {options.map(([v, l]) => (
-        <button
-          key={v}
-          role="radio"
-          aria-checked={value === v}
-          onClick={() => onChange(v)}
-          className={`cursor-pointer rounded-md px-3 py-1 ${value === v ? "bg-[var(--card)] shadow-sm" : "text-[var(--secondary)]"}`}
-        >
-          {l}
-        </button>
-      ))}
     </div>
   );
 }
@@ -75,7 +57,7 @@ function SecretField({ name, initiallySet, label, hint }: { name: "github_token"
 
 export default function SettingsPage() {
   const { t } = useT();
-  const { settings: s, updateSettings, boot, setItems, reviewImport } = useApp();
+  const { settings: s, updateSettings, boot, setItems, reviewImport, checkUpdates, updatesCheckedAt, selfUpdate, appUpdates } = useApp();
   const [catalogMsg, setCatalogMsg] = useState<string | null>(null);
   const [logMsg, setLogMsg] = useState<string | null>(null);
   const [myMsg, setMyMsg] = useState<string | null>(null);
@@ -214,6 +196,24 @@ export default function SettingsPage() {
             }
           >
             {t("settings.exportLog")}
+          </Button>
+        </Line>
+      </Section>
+
+      <Section
+        title={t("settings.updates")}
+        note={
+          updatesCheckedAt
+            ? [selfUpdate ? t("settings.selfUpdate", { v: selfUpdate.version }) : t("settings.selfCurrent", { v: boot.version }), t("settings.appUpdates", { n: Object.keys(appUpdates).length })].join(" ")
+            : undefined
+        }
+      >
+        <Line label={t("settings.checkUpdates")} hint={t("settings.checkUpdatesHint")}>
+          <Toggle checked={s.check_updates} onChange={(check_updates) => updateSettings({ check_updates })} label={t("settings.checkUpdates")} />
+        </Line>
+        <Line label={t("settings.checkNow")}>
+          <Button disabled={updatesCheckedAt === null} onClick={() => void checkUpdates()}>
+            {updatesCheckedAt === null ? <ProgressRing /> : t("settings.checkNow")}
           </Button>
         </Line>
       </Section>

@@ -13,7 +13,7 @@ pub struct Catalog {
     pub items: Vec<Item>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct I18n {
     pub en: String,
     #[serde(default)]
@@ -64,39 +64,29 @@ pub struct ZipSpec {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Defaults {
     /// Value name under RegisteredApplications; its Capabilities supply the ProgIds.
-    pub app: Option<String>,
-    /// File types to make default. Only the ones the app itself registered are used.
-    #[serde(default)]
+    pub app: String,
+    /// File types (".mp4") and link protocols ("https") to make default. Only the ones the app
+    /// itself registered are used.
     pub types: Vec<String>,
-    /// Hand the Print Screen key to the app instead of Snipping Tool.
-    #[serde(default)]
-    pub print_screen: bool,
-    /// Exe in the install folder to start (unelevated) after install: a hotkey tool only works while running.
-    pub start: Option<String>,
+    /// What these are, for the Tweaks card ("Video, audio and playlist files").
+    pub what: I18n,
 }
 
 /// Never handed to another app by a (remote) catalog, even if the app registered them.
-const PROTECTED_TYPES: [&str; 10] = ["exe", "com", "msi", "lnk", "scr", "pif", "cpl", "url", "html", "htm"];
+const PROTECTED_TYPES: [&str; 8] = ["exe", "com", "msi", "lnk", "scr", "pif", "cpl", "url"];
+/// The only link protocols an app may take over: being the default browser.
+const PROTOCOLS: [&str; 2] = ["http", "https"];
 
 fn validate_defaults(id: &str, d: &Defaults) -> Result<()> {
-    if !d.types.is_empty() && d.app.is_none() {
-        bail!("{id}: defaults.types needs defaults.app");
-    }
-    if let Some(app) = &d.app {
-        if app.is_empty() || !app.chars().all(|c| c.is_ascii_alphanumeric() || " ._-".contains(c)) {
-            bail!("{id}: bad defaults.app");
-        }
+    if d.app.is_empty() || !d.app.chars().all(|c| c.is_ascii_alphanumeric() || " ._-".contains(c)) {
+        bail!("{id}: bad defaults.app");
     }
     let ext = regex::Regex::new(r"^\.[a-z0-9][a-z0-9-]{0,15}$").unwrap();
     for t in &d.types {
         let bare = t.trim_start_matches('.');
-        if !ext.is_match(t) || PROTECTED_TYPES.contains(&bare) || crate::installer::SCRIPT_EXTS.contains(&bare) {
+        let file_ok = ext.is_match(t) && !PROTECTED_TYPES.contains(&bare) && !crate::installer::SCRIPT_EXTS.contains(&bare);
+        if !file_ok && !PROTOCOLS.contains(&t.as_str()) {
             bail!("{id}: defaults type {t} is not allowed");
-        }
-    }
-    if let Some(s) = &d.start {
-        if s.contains(['/', '\\', ':']) || !s.to_ascii_lowercase().ends_with(".exe") {
-            bail!("{id}: defaults.start must be an .exe file name");
         }
     }
     Ok(())

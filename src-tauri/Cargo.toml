@@ -1,6 +1,6 @@
 [package]
 name = "setup-hub"
-version = "1.1.0"
+version = "1.2.0"
 description = "One-click post-reinstall provisioning for Windows 11"
 edition = "2021"
 default-run = "setup-hub"

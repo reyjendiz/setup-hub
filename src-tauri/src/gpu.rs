@@ -18,6 +18,8 @@ pub struct Gpu {
     pub driver_version: String,
     /// NVIDIA-style "617.42" for NVIDIA cards.
     pub display_version: Option<String>,
+    /// Windows runs it on its Basic Display Adapter (no vendor driver yet), so the model isn't known.
+    pub driver_missing: bool,
 }
 
 pub fn vendor_from_pnp(pnp: &str) -> Vendor {
@@ -47,26 +49,82 @@ pub fn nvidia_version(wmi: &str) -> Option<String> {
     Some(format!("{}.{}", &d[..3], &d[3..]))
 }
 
-pub async fn detect() -> Result<Vec<Gpu>> {
-    let v = util::ps_json(
-        "@(Get-CimInstance Win32_VideoController | Select-Object Name,PNPDeviceID,DriverVersion)|ConvertTo-Json -Compress",
-    )
-    .await?;
-    let arr = if v.is_array() { v.as_array().unwrap().clone() } else { vec![v] };
-    Ok(arr
-        .iter()
-        .map(|g| {
-            let vendor = vendor_from_pnp(g["PNPDeviceID"].as_str().unwrap_or(""));
-            let drv = g["DriverVersion"].as_str().unwrap_or("").to_string();
-            Gpu {
-                name: g["Name"].as_str().unwrap_or("").to_string(),
-                display_version: (vendor == Vendor::Nvidia).then(|| nvidia_version(&drv)).flatten(),
+/// Builds the GPU list from (name, PnP device id, driver version) rows. A card still on Windows'
+/// Basic Display Adapter is kept when its PCI vendor is known: a fresh Windows has no NVIDIA driver yet.
+pub fn gpus_from(rows: Vec<(String, String, String)>) -> Vec<Gpu> {
+    rows.into_iter()
+        .filter_map(|(name, pnp, drv)| {
+            let vendor = vendor_from_pnp(&pnp);
+            let basic = name.contains("Microsoft Basic Display") || name.trim().is_empty();
+            if basic && vendor == Vendor::Other {
+                return None;
+            }
+            Some(Gpu {
+                display_version: (vendor == Vendor::Nvidia && !basic).then(|| nvidia_version(&drv)).flatten(),
+                name: if basic { String::new() } else { name },
                 vendor,
                 driver_version: drv,
-            }
+                driver_missing: basic,
+            })
         })
-        .filter(|g| !g.name.contains("Microsoft Basic") && !g.name.is_empty())
-        .collect())
+        .collect()
+}
+
+/// Graphics cards as Windows sees them: WMI first, the device registry if PowerShell/WMI is unavailable.
+pub async fn detect() -> Result<Vec<Gpu>> {
+    let wmi = util::ps_json(
+        "@(Get-CimInstance Win32_VideoController | Select-Object Name,PNPDeviceID,DriverVersion)|ConvertTo-Json -Compress",
+    )
+    .await
+    .map(|v| {
+        let arr = if v.is_array() { v.as_array().unwrap().clone() } else { vec![v] };
+        let s = |g: &serde_json::Value, k: &str| g[k].as_str().unwrap_or("").to_string();
+        arr.iter().map(|g| (s(g, "Name"), s(g, "PNPDeviceID"), s(g, "DriverVersion"))).collect::<Vec<_>>()
+    });
+    let rows = match wmi {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::warn!("WMI GPU query failed ({e:#}); reading display devices from the registry");
+            registry_rows()?
+        }
+    };
+    Ok(gpus_from(rows))
+}
+
+const DISPLAY_CLASS: &str = "{4d36e968-e325-11ce-bfc1-08002be10318}";
+
+/// "@oem12.inf,%nvidia_dev.2702%;NVIDIA GeForce RTX 4080" → "NVIDIA GeForce RTX 4080".
+pub fn device_desc(s: &str) -> String {
+    s.rsplit(';').next().unwrap_or(s).trim().to_string()
+}
+
+/// Display-class PCI devices from HKLM\SYSTEM\CurrentControlSet\Enum\PCI and their driver keys.
+fn registry_rows() -> Result<Vec<(String, String, String)>> {
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    let hklm = winreg::RegKey::predef(HKEY_LOCAL_MACHINE);
+    let pci = hklm.open_subkey(r"SYSTEM\CurrentControlSet\Enum\PCI").context("no PCI device list in the registry")?;
+    let mut rows = Vec::new();
+    for dev in pci.enum_keys().flatten() {
+        let Ok(dk) = pci.open_subkey(&dev) else { continue };
+        for inst in dk.enum_keys().flatten() {
+            let Ok(k) = dk.open_subkey(&inst) else { continue };
+            if !k.get_value::<String, _>("ClassGUID").is_ok_and(|g| g.eq_ignore_ascii_case(DISPLAY_CLASS)) {
+                continue;
+            }
+            let name = k.get_value::<String, _>("FriendlyName").or_else(|_| k.get_value::<String, _>("DeviceDesc")).map(|d| device_desc(&d)).unwrap_or_default();
+            let drv = k
+                .get_value::<String, _>("Driver")
+                .ok()
+                .and_then(|d| hklm.open_subkey(format!(r"SYSTEM\CurrentControlSet\Control\Class\{d}")).ok())
+                .and_then(|c| c.get_value::<String, _>("DriverVersion").ok())
+                .unwrap_or_default();
+            rows.push((name, format!(r"PCI\{dev}\{inst}"), drv));
+        }
+    }
+    if rows.is_empty() {
+        anyhow::bail!("no display adapters in the registry");
+    }
+    Ok(rows)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -202,6 +260,23 @@ mod tests {
         assert_eq!(vendor_from_pnp(r"pci\ven_1002&dev_744c"), Vendor::Amd);
         assert_eq!(vendor_from_pnp(r"PCI\VEN_8086&DEV_A780"), Vendor::Intel);
         assert_eq!(vendor_from_pnp(r"ROOT\BasicDisplay"), Vendor::Other);
+    }
+
+    #[test]
+    fn fresh_windows_keeps_nvidia_on_basic_display() {
+        let row = |n: &str, p: &str, d: &str| (n.to_string(), p.to_string(), d.to_string());
+        let g = gpus_from(vec![
+            row("Microsoft Basic Display Adapter", r"PCI\VEN_10DE&DEV_2702&SUBSYS_51181462\4&1", "10.0.26100.1"),
+            row("Microsoft Basic Display Adapter", r"ROOT\BasicDisplay\0000", "10.0.26100.1"),
+            row("Intel(R) UHD Graphics 770", r"PCI\VEN_8086&DEV_A780", "31.0.101.5186"),
+            row("NVIDIA GeForce RTX 4080 SUPER", r"PCI\VEN_10DE&DEV_2702", "32.0.16.1742"),
+        ]);
+        assert_eq!(g.len(), 3);
+        assert!(g[0].driver_missing && g[0].vendor == Vendor::Nvidia && g[0].name.is_empty() && g[0].display_version.is_none());
+        assert!(!g[1].driver_missing && g[1].vendor == Vendor::Intel);
+        assert_eq!(g[2].display_version.as_deref(), Some("617.42"));
+        assert_eq!(device_desc("@oem12.inf,%nvidia_dev.2702%;NVIDIA GeForce RTX 4080"), "NVIDIA GeForce RTX 4080");
+        assert_eq!(device_desc("NVIDIA GeForce RTX 3060"), "NVIDIA GeForce RTX 3060");
     }
 
     #[test]
