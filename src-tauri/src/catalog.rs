@@ -13,7 +13,7 @@ pub struct Catalog {
     pub items: Vec<Item>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct I18n {
     pub en: String,
     #[serde(default)]
@@ -60,6 +60,38 @@ pub struct ZipSpec {
     pub launch: bool,
 }
 
+/// What an app takes over from Windows once installed (see defaults.rs).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Defaults {
+    /// Value name under RegisteredApplications; its Capabilities supply the ProgIds.
+    pub app: String,
+    /// File types (".mp4") and link protocols ("https") to make default. Only the ones the app
+    /// itself registered are used.
+    pub types: Vec<String>,
+    /// What these are, for the Tweaks card ("Video, audio and playlist files").
+    pub what: I18n,
+}
+
+/// Never handed to another app by a (remote) catalog, even if the app registered them.
+const PROTECTED_TYPES: [&str; 8] = ["exe", "com", "msi", "lnk", "scr", "pif", "cpl", "url"];
+/// The only link protocols an app may take over: being the default browser.
+const PROTOCOLS: [&str; 2] = ["http", "https"];
+
+fn validate_defaults(id: &str, d: &Defaults) -> Result<()> {
+    if d.app.is_empty() || !d.app.chars().all(|c| c.is_ascii_alphanumeric() || " ._-".contains(c)) {
+        bail!("{id}: bad defaults.app");
+    }
+    let ext = regex::Regex::new(r"^\.[a-z0-9][a-z0-9-]{0,15}$").unwrap();
+    for t in &d.types {
+        let bare = t.trim_start_matches('.');
+        let file_ok = ext.is_match(t) && !PROTECTED_TYPES.contains(&bare) && !crate::installer::SCRIPT_EXTS.contains(&bare);
+        if !file_ok && !PROTOCOLS.contains(&t.as_str()) {
+            bail!("{id}: defaults type {t} is not allowed");
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Item {
     pub id: String,
@@ -89,6 +121,12 @@ pub struct Item {
     /// winget source: "winget" (default) or "msstore".
     #[serde(default)]
     pub winget_source: Option<String>,
+    #[serde(default)]
+    pub defaults: Option<Defaults>,
+    /// A screenshot app that should get the Print Screen key: after install Setup Hub frees the key
+    /// from Snipping Tool, adds `detect.path` to autostart and starts it.
+    #[serde(default)]
+    pub print_screen: bool,
     // Runtime-only flags for My Apps entries. skip_deserializing: a (remote) catalog can never set them.
     #[serde(skip_deserializing, default)]
     pub custom: bool,
@@ -122,6 +160,16 @@ pub fn parse(json: &str) -> Result<Catalog> {
         }
         if let Source::GithubRelease { asset_regex, .. } = &it.source {
             regex::Regex::new(asset_regex)?;
+        }
+        if let Some(d) = &it.defaults {
+            validate_defaults(&it.id, d)?;
+        }
+        if it.print_screen {
+            // It ends up in autostart: only an installed program's exe under Program Files.
+            let p = it.detect.path.as_deref().unwrap_or("").to_ascii_lowercase();
+            if !p.starts_with(r"%programfiles%\") || !p.ends_with(".exe") || p.contains("..") {
+                bail!("{}: print_screen needs detect.path = %ProgramFiles%\\…\\app.exe", it.id);
+            }
         }
     }
     Ok(c)

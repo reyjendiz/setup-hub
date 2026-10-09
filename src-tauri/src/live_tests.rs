@@ -50,7 +50,8 @@ async fn live_tweak_and_license_state() {
         println!("license: {} status={} key=…{}", l.name, l.status, l.partial_key);
     }
     println!("winget: {}", installer::winget_available().await);
-    println!("ad: dotnet8={} discord={}", ad::dotnet8_desktop_present(), ad::discord_update_exe().exists());
+    let v = ven::state();
+    println!("ven: installed={} autostart={} discord={} vencord={} last={:?}", v.installed, v.autostart, v.discord, v.vencord, v.last_run);
 }
 
 #[tokio::test]

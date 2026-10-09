@@ -14,6 +14,8 @@ export interface Item {
   unelevated: boolean;
   needs_reboot: boolean;
   note?: I18n | null;
+  defaults?: { app: string; types: string[]; what: I18n } | null;
+  print_screen?: boolean;
 }
 export interface Settings {
   lang: "en" | "ru";
@@ -25,6 +27,7 @@ export interface Settings {
   clean_driver_install: boolean;
   allow_http: boolean;
   my_apps_url: string;
+  check_updates: boolean;
 }
 export interface Boot {
   items: Item[];
@@ -124,6 +127,13 @@ export const api = {
   tweakStates: () => invoke<TweakState[]>("tweak_states"),
   tweakApply: (id: string) => invoke<void>("tweak_apply", { id }),
   tweakRevert: (id: string) => invoke<void>("tweak_revert", { id }),
+  checkSelfUpdate: () => invoke<SelfUpdate | null>("check_self_update"),
+  applySelfUpdate: () => invoke<void>("apply_self_update"),
+  checkAppUpdates: () => invoke<AppUpdate[]>("check_app_updates"),
+  defaultsStates: () => invoke<DefaultState[]>("defaults_states"),
+  defaultsApply: (id: string) => invoke<"next_sign_in" | "next_sign_in_home" | "use_settings">("defaults_apply", { id }),
+  defaultsRevert: (id: string) => invoke<void>("defaults_revert", { id }),
+  defaultsSettingsUri: (id: string) => invoke<string>("defaults_settings_uri", { id }),
   gpuInfo: () => invoke<GpuInfo>("gpu_info"),
   installNvidia: (clean: boolean) => invoke<void>("install_nvidia", { clean }),
   driveList: (folder?: string) => invoke<DriveEntry[]>("drive_list", { folder: folder ?? null }),
@@ -141,8 +151,10 @@ export const api = {
   myappsFetchUrl: (url: string) => invoke<MyApp[]>("myapps_fetch_url", { url }),
   logTail: (id: string) => invoke<string>("log_tail", { id }),
   driveDownload: (files: { id: string; name: string; path: string }[], dest: string) => invoke<void>("drive_download", { files, dest }),
-  adState: () => invoke<AdState>("ad_state"),
-  adInstall: () => invoke<void>("ad_install"),
+  venState: () => invoke<VenState>("ven_state"),
+  venInstall: () => invoke<void>("ven_install"),
+  venRun: () => invoke<void>("ven_run"),
+  venRemove: () => invoke<void>("ven_remove"),
   licenseStatus: () => invoke<License[]>("license_status"),
   activateKey: (key: string) => invoke<string>("activate_key", { key }),
   saveSettings: (s: Settings) => invoke<void>("save_settings", { s }),
@@ -151,12 +163,42 @@ export const api = {
   exportLog: () => invoke<string>("export_log"),
 };
 
+export interface SelfUpdate { version: string; url: string; sha256?: string | null; notes_url: string }
+export interface AppUpdate { id: string; installed: string; available: string }
+
+/** One card per catalog app that replaces a built-in Windows app; id is the catalog item id. */
+export interface DefaultState {
+  id: string;
+  name: string;
+  installed: boolean;
+  applied: boolean;
+  pending: boolean;
+  can_revert: boolean;
+  ours: number;
+  total: number;
+  home: boolean;
+  settings_uri: string;
+}
 export interface TweakState { id: string; applied?: boolean; can_revert?: boolean; detail?: string; error?: string }
-export interface Gpu { name: string; vendor: "Nvidia" | "Amd" | "Intel" | "Other"; driver_version: string; display_version?: string | null }
+export interface Gpu { name: string; vendor: "Nvidia" | "Amd" | "Intel" | "Other"; driver_version: string; display_version?: string | null; driver_missing: boolean }
 export interface DriverInfo { version: string; release_date: string; url: string; size: string; name: string }
-export interface GpuInfo { gpus: Gpu[]; nvidia_latest?: DriverInfo | null; nvidia_error?: string | null; update_available: boolean }
+export interface GpuInfo {
+  gpus: Gpu[];
+  nvidia_latest?: DriverInfo | null;
+  nvidia_error?: string | null;
+  update_available: boolean;
+  detect_error?: string | null;
+  use_nvidia_app: boolean;
+}
 export interface DriveEntry { id: string; name: string; mime: string; is_folder: boolean; size?: number | null; path: string }
-export interface AdState { installed: boolean; discord: boolean; dotnet: boolean; vencord_cli: boolean; path: string }
+export interface VenState {
+  installed: boolean;
+  autostart: boolean;
+  discord: boolean;
+  vencord: boolean;
+  last_run?: { time: number; vencord_ok: boolean; discord_started: boolean; message: string } | null;
+  path: string;
+}
 export interface License { name: string; description: string; status: number; partial_key: string; grace_minutes: number }
 
 /** "1.10.0" > "1.9.1" → true. Non-numeric parts compare as 0. */

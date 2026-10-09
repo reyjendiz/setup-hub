@@ -1,7 +1,7 @@
 use crate::catalog::{self, Item, Mode, Source};
 use crate::installer::{self, Kind, Outcome};
 use crate::myapps::{self, MyApp};
-use crate::{detect, download, settings, sig, util};
+use crate::{defaults, detect, download, settings, sig, util};
 use anyhow::{anyhow, bail, Result};
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap};
@@ -166,9 +166,16 @@ pub async fn install(app: AppHandle, eng: Arc<Engine>, id: String) {
     let Some(item) = eng.item(&id) else { return };
     let (a2, e2, it) = (app.clone(), eng.clone(), item.clone());
     job(&app, &eng, &id, &item.name, move |cancel| async move {
-        let (mut o, msg) = run_item(&a2, &e2, &it, &cancel).await?;
+        let (mut o, mut msg) = run_item(&a2, &e2, &it, &cancel).await?;
         if it.needs_reboot {
             o = Outcome::Reboot;
+        }
+        // Apps that replace a Windows function (VLC, Chrome, PdfCraft) become the default for it.
+        if !it.custom && it.defaults.is_some() {
+            msg = defaults::after_install(&it).or(msg);
+        }
+        if !it.custom && it.print_screen {
+            msg = Some(defaults::take_print_screen(&it).await);
         }
         let version = detect::detect_one(&e2.item(&it.id).unwrap_or(it), &detect::uninstall_entries(), &detect::appx_packages());
         Ok((o, version, msg))

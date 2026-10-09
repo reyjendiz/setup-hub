@@ -14,6 +14,8 @@ pub struct Settings {
     pub allow_http: bool,
     /// Where My Apps is restored from after a reinstall (raw GitHub, Drive file link or any HTTPS URL).
     pub my_apps_url: String,
+    /// On launch, look for a newer Setup Hub and for app updates.
+    pub check_updates: bool,
 }
 
 impl Default for Settings {
@@ -28,6 +30,7 @@ impl Default for Settings {
             clean_driver_install: true,
             allow_http: false,
             my_apps_url: String::new(),
+            check_updates: true,
         }
     }
 }

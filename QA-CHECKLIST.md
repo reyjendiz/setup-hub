@@ -21,9 +21,23 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] NordVPN (needs reboot) → restart banner appears at the end; **Later** hides it, **Restart now** restarts in 5 s.
 - [ ] Force a failure (disconnect the network mid-download) → red **Retry** + **Details** with the error; reconnect → Retry resumes the partial download.
 - [ ] Offline launch → app opens; catalog origin says "embedded"; installs fail with a clear network error, no crash.
-- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, Claude, qBittorrent) fail with "winget is not available…".
+- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, qBittorrent, VLC, Node.js, Python, Python Launcher, uv, FFmpeg) fail with "winget is not available…".
 - [ ] AutoLogon → extracted to `C:\Program Files\SetupHub\Tools\Autologon`, Start Menu shortcut "Sysinternals AutoLogon", tool opens; nothing is typed into it.
+- [ ] Tabs: **Programs** (default) and **Games** (Steam, GearUP, Astrum Play, AVA Mod Manager) with counts; the chosen tab survives a restart; search filters inside the tab and the counts show matches per tab.
+- [ ] Programs tab shows four sections — Everyday, For designers, For programmers, Dev toolchain — each with **Install these (n)** that installs only that section's missing apps; search hides empty sections.
+- [ ] Spot-check the new winget apps on a clean VM: Firefox, WhatsApp (Store), PowerToys, OBS Studio, Epic Games Launcher, Blender, Affinity (MSIX → ✓ Installed via the package), VS Code, PowerShell 7, Docker Desktop (restart banner) — each ends ✓ Installed with a version.
+- [ ] Programs → **Dev toolchain** group → **Install these (6)** → Git, Node.js, Python, Python Launcher, uv, FFmpeg install. In a *new* terminal: `git --version`, `node -v`, `npm -v`, `python --version`, `py --version`, `uv --version`, `ffmpeg -version` all work, and `bash --version` finds Git Bash.
+- [ ] Crafting Apps (PhotoCraft, VectorCraft, FilmCraft, LightCraft, EffectCraft, DesignCraft, PdfCraft) install silently from their GitHub MSIs and show ✓ Installed with a version.
 - [ ] Search field and Ctrl+K palette filter apps; Enter on an app installs it; arrows move the selection; Esc closes.
+
+## Updates
+- [ ] Publish a release `v9.9.9` with `setup-hub.exe` in a test fork, point `update::REPO` at it, launch → banner "Setup Hub 9.9.9 is available" → **Update and restart** → progress, the window closes and the new version opens (Settings → About shows it), no second UAC prompt; `setup-hub.old.exe` is gone after that start.
+- [ ] Release asset with a wrong digest / unsigned file without digest → the banner shows the error, the running exe is untouched.
+- [ ] Exe in a read-only folder → clear "can't replace … (is the folder writable?)" error.
+- [ ] Install an older Chrome/Node.js with winget (`winget install Google.Chrome --version …`), launch → the app's card shows `old → new` + **Update**, header shows **Update all (n)** → updates; the badge clears when done.
+- [ ] A GitHub-sourced app with an older MSI installed (e.g. PhotoCraft) → shows an update; Update installs the new MSI over it.
+- [ ] Settings → Updates: toggle off → no check on the next launch; **Check now** shows a spinner, then "Setup Hub x is up to date. Apps with updates: n".
+- [ ] Offline launch → no banner, no error popups.
 
 ## My Apps
 - [ ] **+ Add** in the title bar and **My Apps** in the sidebar both open the Add sheet; nothing is read from the clipboard until **Paste** is pressed.
@@ -59,19 +73,40 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Pointer speed → Apply → Control Panel › Mouse shows the 5th notch; `MouseSensitivity` = 8. Revert → previous value.
 - [ ] Enhance pointer precision → Apply → checkbox off in Control Panel; Revert → back on.
 - [ ] Power → Apply → `powercfg /getactivescheme` = High performance; display/sleep/hibernate "Never". Revert → previous plan & timeouts.
+- [ ] Print Screen → Apply → `HKCU\Control Panel\Keyboard\PrintScreenKeyForSnippingEnabled` = 0 and Settings › Accessibility › Keyboard shows "Use the Print screen key to open screen capture" off; Revert → previous value (deleted again if it was absent).
+- [ ] Install **Flameshot** → the Print Screen tweak shows Applied, `HKCU\…\Run\Flameshot` points at `C:\Program Files\Flameshot\bin\flameshot.exe`, Flameshot is in the tray (not elevated); **PrtScn** opens Flameshot's capture (sign out and in if Snipping Tool still opens); after a restart Flameshot is running again and PrtScn still works.
 - [ ] Hibernation / Fast Startup toggles apply and revert; `powercfg /a` reflects the change.
 - [ ] Re-applying a tweak twice and then reverting restores the *original* values (snapshot isn't overwritten).
+
+## Default apps
+- [ ] Install **VLC** → card says "Set as the default app — Windows applies it at your next sign-in". `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` = `C:\ProgramData\SetupHub\DefaultAssociations.xml`; the XML lists `VLC.mp4` etc. with `Suggested="true"` and no `.iso`/`.zip`/`.rar`.
+- [ ] Install **Chrome** and **PdfCraft** → the same XML now also has `http`/`https`/`.html` → `ChromeHTML` and `.pdf` → `PdfCraft.Document`, with a higher `Version`.
+- [ ] Tweaks → Default apps shows Chrome, VLC and PdfCraft with "Applies at your next sign-in". Sign out and in → a link opens Chrome, an .mp4/.mkv/.mp3 opens VLC, a PDF opens PdfCraft; the cards show ✓ Applied with "n of n types".
+- [ ] Windows 11: pick Media Player for .mp4 in Settings, sign out and in → it stays Media Player (Suggested = applied once). **Apply** again → VLC again after the next sign-in.
+- [ ] **Revert** VLC → VLC's rows are gone from the XML (policy and file removed when nothing is left); .mp4 still opens VLC until changed.
+- [ ] **Open Settings** opens Settings › Default apps › the app's page.
+- [ ] Set `DefaultAssociationsConfiguration` to another path first → installing VLC leaves it untouched and the card offers Open Settings.
+- [ ] Windows 11 Home VM: cards show the Home warning; note here whether Windows applied the policy after sign-in.
 
 ## Drivers
 - [ ] RTX card detected with installed version in NVIDIA format (e.g. 617.42).
 - [ ] Up-to-date driver → green "Up to date"; outdated → "Update available" + Install.
 - [ ] Install with **Clean install** on → screen flashes; restart banner appears.
-- [ ] Block `gfwsl.geforce.com` in hosts → page shows the lookup error; Install falls back to the NVIDIA App.
-- [ ] VM with only Basic Display Adapter → "No supported GPU detected"; no install button.
+- [ ] Block `gfwsl.geforce.com` in hosts → page shows the lookup error and the button reads **Install NVIDIA App**; it installs the NVIDIA App.
+- [ ] Fresh Windows with an NVIDIA card and no driver yet (Device Manager: Microsoft Basic Display Adapter) → card "NVIDIA graphics card", driver "none yet", button **Install NVIDIA App** → NVIDIA App installs, opens, detects the card and offers the driver.
+- [ ] Rename `powershell.exe`'s path out of reach (or run with WMI service stopped) → the card still appears (read from the registry).
+- [ ] VM with only Basic Display Adapter and a non-NVIDIA/virtual GPU → "No supported GPU detected"; no install button.
 
-## AD
-- [ ] Without Discord → "Install Discord, then AD" installs Discord then AD.
-- [ ] With Discord → **Install AD** installs .NET 8 Desktop Runtime if missing, writes `%LOCALAPPDATA%\Programs\AD\MyDiscordLauncher.exe`, Desktop + Start Menu "AD" shortcuts, pre-fills Discord path and downloads Vencord CLI, then opens AD with the first two rows green.
+## Ven
+- [ ] PC that had the old AD: **Install Ven** removes `%LOCALAPPDATA%\Programs\AD`, `%LOCALAPPDATA%\MyDiscordLauncher`, the AD shortcuts and `HKCU\…\Run\MyDiscordLauncher`.
+- [ ] Without Discord → "Install Discord, then Ven" installs Discord, then Ven.
+- [ ] With Discord → **Install Ven** → `%LOCALAPPDATA%\Programs\Ven\Ven.exe`, `HKCU\…\Run\Ven` = `"…\Ven.exe" --startup`, Start Menu "Ven"; Discord opens **with Vencord** (Settings shows the Vencord section) and is **not** elevated (Task Manager › Details › Elevated = No); the page shows all three rows green and "Last run …: Vencord is up to date; Discord started".
+- [ ] Task Manager › Startup apps: Discord = Disabled, Ven = Enabled.
+- [ ] Restart the PC → after sign-in Discord opens minimized to the tray with Vencord; `%LOCALAPPDATA%\Ven\ven.log` shows the run (installer update skipped or done, `installer: … Successfully patched`).
+- [ ] Let Discord update itself (or install an older Discord), restart → Vencord is still there.
+- [ ] Unplug the network, restart → Discord still opens; the Ven page shows "offline — Vencord not checked" in orange.
+- [ ] **Run now** → Discord closes and reopens with Vencord; the last-run line updates.
+- [ ] **Remove Ven** → Run entry, shortcut and folders gone; Discord's startup entry is Enabled again; Vencord still in Discord.
 
 ## Activation
 - [ ] Status shows edition, "Activated"/grace state and last 5 key characters.

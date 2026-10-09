@@ -356,3 +356,21 @@ export function JobButton({
 export function Row({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`flex items-center justify-between gap-4 px-4 py-3 ${className}`}>{children}</div>;
 }
+
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, ReactNode][]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-[var(--fill)] p-0.5 text-[13px] font-medium">
+      {options.map(([v, l]) => (
+        <button
+          key={v}
+          role="radio"
+          aria-checked={value === v}
+          onClick={() => onChange(v)}
+          className={`cursor-pointer rounded-md px-3 py-1 ${value === v ? "bg-[var(--card)] shadow-sm" : "text-[var(--secondary)]"}`}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}

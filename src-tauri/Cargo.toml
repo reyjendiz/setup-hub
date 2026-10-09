@@ -1,6 +1,6 @@
 [package]
 name = "setup-hub"
-version = "1.1.0"
+version = "1.2.0"
 description = "One-click post-reinstall provisioning for Windows 11"
 edition = "2021"
 default-run = "setup-hub"
@@ -37,7 +37,7 @@ tracing-appender = "0.2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 winreg = "0.55"
 keyring = { version = "3", features = ["windows-native"] }
-windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_Globalization"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_Globalization", "Win32_System_SystemInformation"] }
 
 [profile.release]
 opt-level = "s"

@@ -1,21 +1,63 @@
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, getJob, getLog, isActive, Item, useJob, useJobsVersion } from "../api";
 import { useApp } from "../App";
-import { AppIcon, Badge, Button, Card, JobButton, PageHeader, spring } from "../components";
-import { useT } from "../i18n";
+import { AppIcon, Badge, Button, Card, JobButton, PageHeader, Segmented, spring } from "../components";
+import { Key, useT } from "../i18n";
+
+type Tab = "programs" | "games";
+
+/** Sections of the Programs tab, by catalog category. */
+const GROUPS: { id: string; title: Key; hint: Key }[] = [
+  { id: "everyday", title: "apps.groupEveryday", hint: "apps.groupEverydayHint" },
+  { id: "design", title: "apps.groupDesign", hint: "apps.groupDesignHint" },
+  { id: "coding", title: "apps.groupCoding", hint: "apps.groupCodingHint" },
+  { id: "dev", title: "apps.devTitle", hint: "apps.devHint" },
+];
+const groupOf = (i: Item) => (i.category === "creative" ? "design" : i.category === "coding" || i.category === "dev" ? i.category : "everyday");
+const tabOf = (i: Item): Tab => (i.category === "gaming" ? "games" : "programs");
+
+function savedTab(): Tab {
+  try {
+    return localStorage.getItem("apps.tab") === "games" ? "games" : "programs";
+  } catch {
+    return "programs";
+  }
+}
+
+/** Messages the engine sends after making an app the default (see defaults.rs after_install). */
+const DEFAULT_MSG: Record<string, Key> = {
+  "default-signin": "apps.default.signin",
+  "default-signin-home": "apps.default.signinHome",
+  "default-settings": "apps.default.settings",
+  "default-print-screen": "apps.default.printScreen",
+};
 
 export default function Apps() {
   const { t, lang } = useT();
-  const { items, installed, search, setSearch, boot, myApps } = useApp();
+  const { items, installed, search, setSearch, boot, myApps, appUpdates } = useApp();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batch, setBatch] = useState<string[]>([]);
   useJobsVersion(); // re-render on any job event for the batch bar
 
+  const [tab, setTab] = useState<Tab>(savedTab);
+  useEffect(() => {
+    try {
+      localStorage.setItem("apps.tab", tab);
+    } catch {}
+  }, [tab]);
+
   const q = search.trim().toLowerCase();
-  const shown = items.filter((i) => !q || i.name.toLowerCase().includes(q) || i.description[lang].toLowerCase().includes(q));
+  const matching = items.filter((i) => !q || i.name.toLowerCase().includes(q) || i.description[lang].toLowerCase().includes(q));
+  const count = (tb: Tab) => matching.filter((i) => tabOf(i) === tb).length;
+  const shown = matching.filter((i) => tabOf(i) === tab);
+  // Programs are grouped by who they're for; each group can be installed in one go. Games stay one grid.
+  const groups =
+    tab === "games"
+      ? [{ id: "games", items: shown }]
+      : GROUPS.map((g) => ({ ...g, items: shown.filter((i) => groupOf(i) === g.id) })).filter((g) => g.items.length > 0);
 
   const start = (ids: string[]) => {
     // Interactive installers go last so the silent ones finish without waiting on a click.
@@ -49,6 +91,12 @@ export default function Apps() {
             </Button>
           </>
         ) : (
+          <>
+          {Object.keys(appUpdates).length > 0 && (
+            <Button className="h-10 px-5 text-[15px]" disabled={running} onClick={() => start(Object.keys(appUpdates))}>
+              {t("apps.updateAll", { n: Object.keys(appUpdates).length })}
+            </Button>
+          )}
           <Button
             variant="primary"
             className="h-10 px-5 text-[15px]"
@@ -58,6 +106,7 @@ export default function Apps() {
           >
             {t("apps.installAll")}
           </Button>
+          </>
         )}
       </PageHeader>
 
@@ -75,26 +124,44 @@ export default function Apps() {
         )}
       </AnimatePresence>
 
-      <div className="relative mb-5 max-w-sm">
-        <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--secondary)]" />
-        <input className="field pl-9" placeholder={t("common.search")} aria-label={t("common.search")} value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Segmented
+          label={t("apps.tabs")}
+          value={tab}
+          onChange={setTab}
+          options={[
+            ["programs", `${t("apps.tabPrograms")} · ${count("programs")}`],
+            ["games", `${t("apps.tabGames")} · ${count("games")}`],
+          ]}
+        />
+        <div className="relative w-full max-w-sm">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--secondary)]" />
+          <input className="field pl-9" placeholder={t("common.search")} aria-label={t("common.search")} value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
       </div>
 
       {shown.length === 0 ? (
-        <p className="py-16 text-center text-[var(--secondary)]">{t("apps.empty", { q: search })}</p>
+        <p className="py-16 text-center text-[var(--secondary)]">{q ? t("apps.empty", { q: search }) : t("apps.emptyTab")}</p>
       ) : (
-        <motion.div layout className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
-          {shown.map((it) => (
-            <AppCard
-              key={it.id}
-              item={it}
-              installed={installed[it.id]}
-              selected={selected.has(it.id)}
-              selecting={selected.size > 0}
-              onSelect={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(it.id) : n.delete(it.id); return n; })}
-            />
-          ))}
-        </motion.div>
+        groups.map((g) => {
+          const missing = g.items.filter((i) => installed[i.id] === undefined).map((i) => i.id);
+          return (
+            <section key={g.id} className="mb-8">
+              {"title" in g && (
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2 className="section-title">{t(g.title)}</h2>
+                    <p className="text-[13px] text-[var(--secondary)]">{t(g.hint)}</p>
+                  </div>
+                  <Button disabled={missing.length === 0 || running} onClick={() => start(missing)}>
+                    {missing.length ? t("apps.installGroup", { n: missing.length }) : t("apps.allInstalled")}
+                  </Button>
+                </div>
+              )}
+              <AppGrid items={g.items} selected={selected} setSelected={setSelected} />
+            </section>
+          );
+        })
       )}
       <p className="caption mb-20 mt-6">{t("apps.catalogOrigin", { origin: boot.catalog_origin })}</p>
       <LogSheet />
@@ -102,10 +169,31 @@ export default function Apps() {
   );
 }
 
+function AppGrid({ items, selected, setSelected }: { items: Item[]; selected: Set<string>; setSelected: (f: (s: Set<string>) => Set<string>) => void }) {
+  const { installed } = useApp();
+  if (items.length === 0) return null;
+  return (
+    <motion.div layout className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
+      {items.map((it) => (
+        <AppCard
+          key={it.id}
+          item={it}
+          installed={installed[it.id]}
+          selected={selected.has(it.id)}
+          selecting={selected.size > 0}
+          onSelect={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(it.id) : n.delete(it.id); return n; })}
+        />
+      ))}
+    </motion.div>
+  );
+}
+
 function AppCard({ item, installed, selected, selecting, onSelect }: { item: Item; installed?: string; selected: boolean; selecting: boolean; onSelect: (v: boolean) => void }) {
   const { t, lang } = useT();
   const job = useJob(item.id);
+  const upd = useApp().appUpdates[item.id];
   const waitingOnUser = item.interactive && job?.phase === "installing";
+  const defaultMsg = job?.phase === "done" ? DEFAULT_MSG[job.message ?? ""] : undefined;
   return (
     <Card className="group relative flex flex-col gap-3 p-4">
       <div className="flex items-start gap-3">
@@ -128,11 +216,12 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
         <div className="flex min-w-0 flex-wrap gap-1">
           {item.interactive && <Badge tone="orange">{t("apps.needsInteraction")}</Badge>}
           {item.unelevated && <Badge>{t("apps.nonAdmin")}</Badge>}
-          {installed && <Badge tone="green">{installed}</Badge>}
+          {upd ? <Badge tone="orange">{upd.installed} → {upd.available}</Badge> : installed && <Badge tone="green">{installed}</Badge>}
         </div>
         <JobButton
           job={job}
-          done={installed !== undefined}
+          done={installed !== undefined && !upd}
+          idleLabel={upd ? t("apps.update") : undefined}
           onStart={() => api.install([item.id])}
           onCancel={() => api.cancel(item.id)}
         />
@@ -141,6 +230,20 @@ function AppCard({ item, installed, selected, selecting, onSelect }: { item: Ite
         <p className={`text-[12px] ${waitingOnUser ? "font-medium text-[var(--orange)]" : "text-[var(--tertiary)]"}`}>
           {waitingOnUser ? t("apps.interactiveRunning") : item.note?.[lang]}
         </p>
+      )}
+      {defaultMsg && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[12px] text-[var(--secondary)]">{t(defaultMsg, { name: item.name })}</p>
+          {(job?.message === "default-settings" || job?.message === "default-signin-home") && (
+            <Button
+              variant="plain"
+              className="shrink-0"
+              onClick={() => (item.print_screen ? openUrl("ms-settings:easeofaccess-keyboard") : api.defaultsSettingsUri(item.id).then(openUrl))}
+            >
+              {t("tweaks.openSettings")}
+            </Button>
+          )}
+        </div>
       )}
     </Card>
   );

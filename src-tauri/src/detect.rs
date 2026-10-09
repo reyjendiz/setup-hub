@@ -126,11 +126,11 @@ mod tests {
             e("Discord", "1.0.9261"),
             e("GIGABYTE Control Center 25.07.02.01", "25.07.02.01"),
         ];
-        let appx = vec!["Claude_2.31226.0.0_x64__pzs8sxrjxfjjc".to_string()];
+        let appx = vec!["5319275A.WhatsAppDesktop_2.2540.6.0_x64__cv1g1gvanyjgm".to_string()];
         assert_eq!(detect_one(&get("zoom"), &entries, &appx).unwrap(), "7.1.9");
         assert_eq!(detect_one(&get("steam"), &entries, &appx).unwrap(), "2.10");
         assert_eq!(detect_one(&get("gcc"), &entries, &appx).unwrap(), "25.07.02.01");
-        assert_eq!(detect_one(&get("claude"), &entries, &appx).unwrap(), "2.31226.0.0");
+        assert_eq!(detect_one(&get("whatsapp"), &entries, &appx).unwrap(), "2.2540.6.0");
         assert!(detect_one(&get("figma"), &entries, &appx).is_none());
 
         let mut by_key = get("figma");

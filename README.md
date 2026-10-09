@@ -1,19 +1,28 @@
 # Setup Hub
 
-![Setup Hub — Apps page](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img alt="Setup Hub — Apps page" src="docs/screenshot.png">
+</picture>
 
-**[Download the latest release](https://github.com/reyjendiz/setup-hub/releases/latest)**
+**[⬇ Download the latest release](https://github.com/reyjendiz/setup-hub/releases/latest)** — `setup-hub.exe`, portable, nothing to install.
 
-One-click post-reinstall provisioning for Windows 10/11 x64. After a clean install, download **one file** (`setup-hub.exe`, ~7 MB, portable) and from inside it:
+Everything you set up after reinstalling Windows 10/11 x64, from one file. Pick your apps, press **Install all**, and Setup Hub downloads, verifies and installs them silently, one after another — then gets out of the way.
 
-- **Apps** — silent install of 23 apps (winget first, signed vendor installer as fallback), "Install all", multi-select, Ctrl+K palette, live progress, cancel, retry, reboot collection.
-- **My Apps** — add any program yourself by pasting a link (GitHub repo, direct file, winget ID, Microsoft Store, web page); it then installs with one click like the built-in apps.
-- **Files** — list and download the shared Google Drive folder (no sign-in), nested folders, resume. Nothing is run or extracted.
-- **Tweaks** — pointer speed (5th notch), Enhance pointer precision off, High performance + never sleep/display-off; optional hibernation / Fast Startup. Each one reverts.
-- **Drivers** — latest WHQL Game Ready driver for the detected NVIDIA GPU (NVIDIA App fallback); AMD/Intel get their official pages.
-- **AD** — installs your Vencord launcher (bundled in the exe).
-- **Activation** — license status, *Open Activation settings*, *Enter my own key*. No KMS, no third-party keys.
-- **Settings** — EN/RU, theme, folders, parallel downloads, GitHub token / Google API key (Credential Manager), remote catalog, log export.
+### What it does
+
+- **Apps** — 77 free apps in two tabs. **Programs** is grouped into *Everyday* (browsers, messengers, media, notes, system utilities), *For designers* (Blender, Affinity, GIMP, Krita, the ArtCraft apps…), *For programmers* (VS Code, Cursor, Docker, Postman…) and *Dev toolchain* (Git, Node.js, Python, uv, FFmpeg); **Games** has the launchers. Each group installs in one click; winget first, the vendor's signed installer as fallback, with live progress, cancel, retry and one restart prompt at the end.
+- **Updates** — Setup Hub updates itself from GitHub Releases (*Update and restart*), and finds newer versions of the apps it installed (*Update all*).
+- **Default apps** — apps that replace a built-in one become the default: Chrome for links, VLC for video and music, PdfCraft for PDFs, Flameshot on the Print Screen key. Every change can be reverted in **Tweaks**.
+- **Drivers** — reads your graphics card from Windows and installs the latest NVIDIA Game Ready driver; if Windows doesn't know the model yet (fresh install), it installs the NVIDIA App, which finds it. AMD and Intel get their official pages.
+- **Tweaks** — pointer speed, mouse acceleration off, High performance power plan, Print Screen without Snipping Tool, hibernation and Fast Startup — one click each, each one reverts.
+- **Ven** — keeps [Vencord](https://github.com/Vendicated/Vencord) in Discord: at every sign-in it installs the latest Vencord, then opens Discord. No .NET, no admin rights.
+- **My Apps** — add any program by pasting a link (GitHub repo, direct download, winget ID, Microsoft Store, web page); it installs like the built-in ones, after you review its signature once.
+- **Files** — downloads your shared Google Drive folder, no sign-in.
+- **Activation** — Windows license status and *Enter my own key*. No KMS, no third-party keys.
+- **Settings** — English / Russian, light / dark theme, download folder, parallel downloads, tokens in Windows Credential Manager, remote catalog, update checks, log export.
+
+Safe by default: HTTPS only, a host allow-list per app, SHA-256 and Authenticode checks before anything runs, scripts are never executed, no telemetry.
 
 ## Build
 
@@ -25,8 +34,8 @@ pnpm tauri build
 ```
 
 Outputs:
-- `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and AD are embedded; requests admin via manifest).
-- `src-tauri/target/release/bundle/nsis/Setup Hub_1.1.0_x64-setup.exe` — optional installer.
+- `src-tauri/target/release/setup-hub.exe` — the portable single exe (frontend, catalog and Ven are embedded; requests admin via manifest).
+- `src-tauri/target/release/bundle/nsis/Setup Hub_1.2.0_x64-setup.exe` — optional installer.
 
 Other commands:
 
@@ -58,9 +67,28 @@ Exit codes 3010/1641 (and winget's "reboot required") collect into one *Restart 
 
 `src-tauri/catalog.json` is embedded. Set *Settings → Custom catalog URL* to a raw GitHub URL of your own copy to update links without rebuilding; the last good remote copy is cached and the embedded one is the offline fallback. A remote catalog is validated the same way (https only, URL host must be in that item's `allowed_hosts`).
 
-Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?`.
+Schema per item: `id, name, category, description{en,ru}, winget_id?, source{type: winget|direct|github_release|scrape, url|repo+asset_regex|page+regex}, silent_args[], detect{display_name?, path?, appx?}, allowed_hosts[], publisher?, zip?{run|extract_to+shortcut+launch}, needs_reboot, interactive, unelevated, note?, defaults?{app, types[], what{en,ru}}`. Category `gaming` goes to the **Games** tab; in **Programs**, `creative` → *For designers*, `coding` → *For programmers*, `dev` → *Dev toolchain*, everything else → *Everyday*.
 
 See **[catalog-report.md](catalog-report.md)** for the verified URL, version, installer type, signer and silent switches of every item.
+
+## Default apps
+
+Catalog apps that replace a built-in Windows app are made the default as part of their install, and get a card under **Tweaks → Default apps** (state, **Apply**, **Revert**, **Open Settings**):
+
+| App | Replaces | Types |
+|---|---|---|
+| Google Chrome | Edge as the browser | `http`, `https`, `.htm`, `.html`, `.shtml`, `.xht`, `.xhtml` |
+| VLC media player | Media Player | 114 video, audio and playlist types |
+| PdfCraft | Edge as the PDF reader | `.pdf` |
+
+Windows protects each user's choice (UserChoice / UserChoiceLatest) with a hash that only Windows may write, so Setup Hub doesn't forge it. Instead it reads the ProgIds the app registered (`RegisteredApplications\VLC` → `Capabilities\FileAssociations` / `URLAssociations`, e.g. `.mkv` → `VLC.mkv`, `https` → `ChromeHTML`), writes them to `%ProgramData%\SetupHub\DefaultAssociations.xml` and points `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` at it. Windows applies it at the **next sign-in**. Every association is `Suggested="true"`, so on Windows 11 22H2+ it's applied once per `Version` (bumped on each Apply) and you can still pick another app later; Windows 10 re-applies it at every sign-in until you Revert. Only types the app itself registered *and* the catalog lists are used — VLC also registers `.iso`, `.zip`, `.rar` and skin files, Chrome `.pdf`, `mailto` and `ftp`; they don't get those. Revert removes the app from the file (and the policy when it's empty); files keep opening in it until you choose another app. An associations policy configured by someone else is never overwritten — the card then offers Settings instead. Microsoft documents the policy for Pro/Enterprise/Education; on Home the card says it may be ignored and offers **Open Settings** (the app's own page in Settings › Default apps on Windows 11).
+
+Catalog schema: `defaults.app` (RegisteredApplications name), `defaults.types` (extensions, plus `http`/`https`; executables, scripts, `.lnk` and `.url` are rejected even from a remote catalog), `defaults.what` (EN/RU label for the card). My Apps entries can't carry defaults.
+
+## Updates
+
+- **Setup Hub** — on launch (Settings → *Check for updates on launch*, on by default) it reads the latest release of `reyjendiz/setup-hub`. A newer version shows *Update and restart*: it downloads the release's `setup-hub.exe`, verifies it against the SHA-256 digest GitHub records for the asset (or a valid signature), renames the running exe to `setup-hub.old.exe`, puts the new one in its place and restarts into it (the old file is deleted on the next start). The release is looked up again when you click, so nothing from the UI decides what gets installed. Releases come from CI: pushing a `v*` tag builds and publishes `setup-hub.exe` + the installer.
+- **Apps** — `winget upgrade` (matched by package id, so any language works) for winget apps, the latest GitHub release vs. the installed version for apps installed from GitHub. Cards show `old → new` and **Update**; **Update all (n)** runs them through the normal install pipeline (winget upgrades in place, MSI/NSIS installers install over the old version). Apps from direct vendor links have no version to compare and are skipped.
 
 ## My Apps (add programs by link)
 
@@ -99,24 +127,35 @@ Runtime-only safety flags (`custom`, `reviewed`, `allow_unsigned`, `allow_http`)
 - **GIGABYTE Control Center**: gigabyte.com's lookup API is behind bot protection, so the catalog pins the current `GCC_26.09.10.01.zip` on `download.gigabyte.com`; update it via the remote catalog. Its setup has no documented silent switch, so it opens for you (*Needs your clicks*). ~900 MB.
 - **GearUP Booster** ships a custom 7-Zip SFX installer with no documented silent switch — *Needs your clicks*.
 - **JONSBO PC Monitor** (Jonsbo TH-360 LCD) is resolved from the TH-360 product page on jonsbo.com, so new versions are picked up automatically; the zip's NSIS setup must be signed by Dongguan Hongtai Technology (JONSBO's company) and runs with `/S`.
+- **VLC media player** installs through winget only (`VideoLAN.VLC`): download.videolan.org redirects to ~70 third-party mirrors, which a per-item host allow-list can't cover.
+- **Google Chrome** installs through winget (`Google.Chrome`), falling back to Google's enterprise MSI (`googlechromestandaloneenterprise64.msi`, signed by Google).
+- **Dev toolchain**: Git (`Git.Git`, fallback: the signed Git for Windows release on GitHub), Node.js LTS, Python 3.14 (winget passes `PrependPath=1`), Python Launcher, uv and FFmpeg come from winget; uv and FFmpeg are winget "portable" packages, linked into `%LOCALAPPDATA%\Microsoft\WinGet\Links` on PATH.
+- **ArtCraft Crafting Apps** ([getartcraft.com/apps](https://getartcraft.com/apps)): PhotoCraft, VectorCraft, FilmCraft, LightCraft, EffectCraft, DesignCraft and PdfCraft, each the per-machine `…-windows-x64.msi` from its `storytold/*` GitHub release, checked against GitHub's SHA-256 digest. The ArtCraft studio app itself isn't in the catalog: it's not on that page, and its GitHub releases are drafts.
+- **Popular free apps** (Firefox, Brave, Thunderbird, WhatsApp, AnyDesk, LocalSend, Notepad++, Obsidian, Bitwarden, Everything, PowerToys, OBS Studio, HandBrake, Audacity, HWiNFO, CPU-Z, CrystalDiskInfo; Epic Games, EA app, Ubisoft Connect, GOG GALAXY, MSI Afterburner; Blender, Affinity, GIMP, Krita, Inkscape, Paint.NET, Canva, Upscayl; VS Code, Cursor, JetBrains Toolbox, PowerShell 7, GitHub Desktop, GitHub CLI, Docker Desktop, Postman, DBeaver, WinSCP, PuTTY) install through winget only, each ID checked against `microsoft/winget-pkgs`; WhatsApp comes from the Microsoft Store source. Docker Desktop asks for a restart (WSL 2). Left out: Battle.net (its winget package requires an install location and has no silent mode) and RustDesk (not in winget).
+- **Flameshot** comes from winget (`Flameshot.Flameshot`), falling back to its GitHub MSI (`Flameshot-<version>-win64.msi`, GitHub's SHA-256). Flameshot registers Print Screen itself (`RegisterHotKey(VK_SNAPSHOT)`), which fails while Windows gives the key to Snipping Tool, and it doesn't start with Windows by default. So after installing it Setup Hub applies the **Print Screen** tweak (`HKCU\Control Panel\Keyboard\PrintScreenKeyForSnippingEnabled` = 0, previous value kept for Revert), adds `HKCU\…\Run\Flameshot` = `%ProgramFiles%\Flameshot\bin\flameshot.exe` (the same entry Flameshot's own "Launch at startup" writes) and starts it as the signed-in user. Catalog flag: `print_screen: true`, which requires `detect.path` to be an `.exe` under `%ProgramFiles%`.
 - **Astrum Play** is a web loader (`astrum-play.ru/loader/AstrumPlayLoader.exe`) with no silent mode — also *Needs your clicks*.
-- **PDFCraft** (`storytold/pdfcraft`) is a real desktop app with a signed Windows MSI and published SHA-256s, so it installs like the others.
 - **AutoLogon** is extracted to `%ProgramFiles%\SetupHub\Tools\Autologon` with a Start Menu shortcut and launched; Setup Hub never types credentials.
-- **NVIDIA**: product/series IDs come from `lookupValueSearch.aspx` (TypeID 3/4) matched against the WMI GPU name, then `AjaxDriverService DriverManualLookup` with `dch=1, isWHQL=1, upCRD=0` (Game Ready, not Studio). Installed with `-s -noreboot -noeula [-clean]`; a reboot is always offered after.
-- **Icons** are fetched once at build time (`pnpm icons`) and bundled, so runtime network calls stay limited to catalog, downloads, NVIDIA lookup and Drive. No telemetry, no updater.
+- **NVIDIA**: the card comes from WMI (`Win32_VideoController`), or from `HKLM\SYSTEM\CurrentControlSet\Enum\PCI` display devices if PowerShell/WMI fails. A card with PCI vendor `10DE` still on the Basic Display Adapter has no model name yet, so it gets the NVIDIA App. Otherwise product/series IDs come from `lookupValueSearch.aspx` (TypeID 3/4) matched against that name, then `AjaxDriverService DriverManualLookup` with `dch=1, isWHQL=1, upCRD=0` (Game Ready, not Studio). Installed with `-s -noreboot -noeula [-clean]`; a reboot is always offered after.
+- **Icons** are fetched once at build time (`pnpm icons`) and bundled, so runtime network calls stay limited to catalog, downloads, NVIDIA lookup and Drive. No telemetry; the only update traffic is the GitHub release check above.
 
-## AD (from `F:\AD`)
+## Ven (Vencord + Discord at sign-in)
 
-`src-tauri/resources/AD/` is a copy of `F:\AD` (without `bin/` and `obj/` build output). It contains:
+`ven/` is a separate small Rust app (~1.5 MB, no .NET, no admin rights). `src-tauri/build.rs` builds it for the same target and Setup Hub embeds the exe. *Install Ven* (Ven page):
 
-- `VencordLauncher/` — the C# .NET 8 WinForms app **MyDiscordLauncher** (`Program.cs`, `Ui.cs`) and its build `out/MyDiscordLauncher.exe`. **This is what Setup Hub installs.** It is framework-dependent → needs the **.NET 8 Desktop Runtime** (installed automatically via winget `Microsoft.DotNet.DesktopRuntime.8`). At runtime it downloads `VencordInstallerCli.exe` from `github.com/Vencord/Installer` into `%LOCALAPPDATA%\MyDiscordLauncher`, patches Discord's `app-*` folder when `_app.asar` is missing, then starts Discord via `Update.exe --processStart Discord.exe`; `--silent` mode is what it registers to run at sign-in.
-- `Launcher/` — an older Go variant (`main.go`, needs `config.json` + `VencordInstallerCLI.exe` beside it). Source only, no binary; kept for reference, not installed.
+1. removes the old **AD** launcher (MyDiscordLauncher: its files, shortcuts and `Run\MyDiscordLauncher` entry);
+2. writes `%LOCALAPPDATA%\Programs\Ven\Ven.exe`, adds `HKCU\…\Run\Ven` = `"…\Ven.exe" --startup` and a Start Menu shortcut;
+3. runs it once as the signed-in user (not elevated — Discord must not inherit Setup Hub's admin rights) and shows the result.
 
-*Install AD* writes `%LOCALAPPDATA%\Programs\AD\MyDiscordLauncher.exe`, pre-fills its Discord path and Vencord CLI (hash-verified against GitHub's digest) so its first two steps are already green, adds Desktop and Start Menu "AD" shortcuts and opens it — click **Enable** there to start with Windows. If Discord is missing, the AD page offers "Install Discord, then AD".
+Every run of `Ven.exe`:
 
-"Replace Discord shortcut" is intentionally **not** offered: in `--silent` mode the launcher does nothing when Discord is already patched (Program.cs line 30), so a Discord shortcut pointing at it would stop opening Discord.
+- marks Discord's own Run entry *Disabled* (`Explorer\StartupApproved\Run\Discord`, what Task Manager › Startup apps does — Discord rewrites its Run value but never this flag), so Discord can't open before Vencord is in place;
+- waits for the network (up to 2 minutes at sign-in), then updates `%LOCALAPPDATA%\Ven\VencordInstallerCli.exe` from the latest [Vencord/Installer](https://github.com/Vencord/Installer) release when its SHA-256 (GitHub's asset digest, required) differs — only GitHub hosts are followed;
+- runs `VencordInstallerCli -install -branch stable`: the installer downloads the latest [Vencord](https://github.com/Vendicated/Vencord) when it changed, closes Discord if it's open, and patches the newest Discord version (Vencord's own `persistAfterDiscordUpdates` keeps it in place across Discord updates in between);
+- starts Discord with `Update.exe --processStart Discord.exe` (plus `--process-start-args --start-minimized` at sign-in, like Discord's own autostart). Offline, it skips the update and still starts Discord.
 
-To update AD, rebuild it in `F:\AD\VencordLauncher` (`dotnet publish -c Release -o out`), copy `out\MyDiscordLauncher.exe` into `src-tauri/resources/AD/VencordLauncher/out/` and rebuild Setup Hub.
+Each run is logged to `%LOCALAPPDATA%\Ven\ven.log`; `status.json` holds the last result, which the Ven page shows with **Run now** and **Remove Ven** (removes Ven, gives Discord its autostart back; Vencord stays in Discord).
+
+Why the old AD didn't work: its sign-in mode only ran after you clicked *Enable* in its window, it exited without starting Discord whenever Discord was already patched, and it needed the .NET 8 Desktop Runtime.
 
 ## Layout
 
@@ -129,7 +168,10 @@ src-tauri/src/
   download.rs  sig.rs    resumable downloads, SHA-256 + Authenticode policy
   installer.rs           winget, installers, de-elevation, unzip
   detect.rs              installed-state detection
-  tweaks.rs gpu.rs drive.rs ad.rs activation.rs settings.rs util.rs
+  defaults.rs            default apps: associations policy XML
+  update.rs              self-update from GitHub Releases, app update checks
+  ven.rs                 installs/runs/removes Ven (embedded from ../ven)
+  tweaks.rs gpu.rs drive.rs activation.rs settings.rs util.rs
   bin/verify_catalog.rs  build-time link verification → catalog-report.md
 QA-CHECKLIST.md          manual test plan for a clean Windows 11 VM
 ```
