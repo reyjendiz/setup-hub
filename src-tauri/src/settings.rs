@@ -16,6 +16,8 @@ pub struct Settings {
     pub my_apps_url: String,
     /// On launch, look for a newer Setup Hub and for app updates.
     pub check_updates: bool,
+    /// Public Google Drive folders added on the Files page.
+    pub drive_folders: Vec<crate::drive::Folder>,
 }
 
 impl Default for Settings {
@@ -31,6 +33,7 @@ impl Default for Settings {
             allow_http: false,
             my_apps_url: String::new(),
             check_updates: true,
+            drive_folders: Vec::new(),
         }
     }
 }

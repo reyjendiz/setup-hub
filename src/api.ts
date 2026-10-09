@@ -28,6 +28,7 @@ export interface Settings {
   allow_http: boolean;
   my_apps_url: string;
   check_updates: boolean;
+  drive_folders: DriveFolder[];
 }
 export interface Boot {
   items: Item[];
@@ -136,7 +137,8 @@ export const api = {
   defaultsSettingsUri: (id: string) => invoke<string>("defaults_settings_uri", { id }),
   gpuInfo: () => invoke<GpuInfo>("gpu_info"),
   installNvidia: (clean: boolean) => invoke<void>("install_nvidia", { clean }),
-  driveList: (folder?: string) => invoke<DriveEntry[]>("drive_list", { folder: folder ?? null }),
+  driveList: (folder: string) => invoke<DriveEntry[]>("drive_list", { folder }),
+  driveFolderInfo: (link: string) => invoke<DriveFolder>("drive_folder_info", { link }),
   myappsList: () => invoke<MyApp[]>("myapps_list"),
   myappsAnalyze: (input: string) => invoke<Analysis[]>("myapps_analyze", { input }),
   myappsAdd: (entries: MyApp[]) => invoke<MyApp[]>("myapps_add", { entries }),
@@ -190,6 +192,7 @@ export interface GpuInfo {
   detect_error?: string | null;
   use_nvidia_app: boolean;
 }
+export interface DriveFolder { id: string; name: string }
 export interface DriveEntry { id: string; name: string; mime: string; is_folder: boolean; size?: number | null; path: string }
 export interface VenState {
   installed: boolean;

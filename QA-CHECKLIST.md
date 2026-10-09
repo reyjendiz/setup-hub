@@ -63,9 +63,12 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Corrupt `my_apps.json` → app starts with an empty list and the bad file is kept as `my_apps.invalid-*.json`.
 
 ## Files
-- [ ] List loads (skeleton first) with names, sizes and type icons.
-- [ ] Download one file → ring → "Downloaded" + **Show in Explorer** opens the folder with the file selected.
-- [ ] **Download all** → every file lands in `Downloads\SetupHub-Drive` (sub-folders recreated). Nothing is executed or extracted.
+- [ ] First open → no folders, only "Add a Google Drive folder". Nothing from any built-in folder is listed.
+- [ ] Paste a folder link shared as *Anyone with the link* (`…/drive/folders/ID?usp=sharing`) → **Add folder** → a chip with the folder's real name appears and its list loads (skeleton first) with names, sizes and type icons.
+- [ ] A private folder → "this folder isn't public …"; a file link or random text → "that isn't a Google Drive folder link …"; nothing is saved.
+- [ ] Add a second folder → chips switch between the lists; **×** removes a folder; the list survives a restart (Settings → `drive_folders`).
+- [ ] Download one file → ring → "Downloaded" + **Show in Explorer** opens `Downloads\SetupHub-Drive\<folder name>` with the file selected.
+- [ ] **Download all** → every file of the selected folder lands in its subfolder (sub-folders recreated). Nothing is executed or extracted.
 - [ ] Change folder with **Change…** → next download goes there.
 - [ ] Add a Google API key in Settings → list reloads via the API with exact sizes.
 

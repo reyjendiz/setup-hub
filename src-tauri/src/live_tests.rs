@@ -28,7 +28,11 @@ async fn live_gpu_and_nvidia_lookup() {
 #[tokio::test]
 #[ignore]
 async fn live_drive_listing() {
-    let e = drive::list(drive::FOLDER_ID, None).await.unwrap();
+    // Any public folder: SETUPHUB_TEST_DRIVE_FOLDER=<folder link or id>
+    let Some(link) = std::env::var("SETUPHUB_TEST_DRIVE_FOLDER").ok() else { return };
+    let f = drive::folder_info(&link, None).await.unwrap();
+    println!("folder: {f:?}");
+    let e = drive::list(&f.id, None).await.unwrap();
     for x in &e {
         println!("{:>12?}  {}/{}  ({})", x.size, x.path, x.name, x.mime);
     }

@@ -6,7 +6,7 @@ import catalog from "../src-tauri/catalog.json";
 
 mockWindows("main");
 document.documentElement.classList.add("no-mica"); // a browser has no Mica behind the page
-const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true, allow_http: false, my_apps_url: "", check_updates: true };
+const settings = { lang: "en", theme: "system", drive_dest: "C:\\Users\\you\\Downloads\\SetupHub-Drive", keep_installers: false, parallel_downloads: 3, catalog_url: "", clean_driver_install: true, allow_http: false, my_apps_url: "", check_updates: true, drive_folders: [{ id: "1AbCdEfGhIjKlMnOpQ", name: "Mods & Presets" }] };
 
 const fake = (id: string, interactive = false) => {
   let p = 0;
@@ -115,6 +115,8 @@ mockIPC(
           { id: "c", name: "Presets", mime: "folder", is_folder: true, size: null, path: "" },
           { id: "d", name: "preset-1.json", mime: "application/json", is_folder: false, size: 2048, path: "Presets" },
         ];
+      case "drive_folder_info":
+        return { id: "1NewFolderIdXyz", name: "Wallpapers" };
       case "drive_download":
         args.files.forEach((f: any) => fake(`drive:${f.id}`));
         return;

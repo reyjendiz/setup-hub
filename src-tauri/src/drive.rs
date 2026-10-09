@@ -1,14 +1,76 @@
 use crate::util;
 use anyhow::{bail, Context, Result};
 use futures::{stream, StreamExt};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-pub const FOLDER_ID: &str = "1P_yy_Sw-Ca4m7sfqEmdLjpGeIPY5DZoU";
 const HOSTS: [&str; 4] = ["drive.google.com", "drive.usercontent.google.com", "googleusercontent.com", "googleapis.com"];
 
 pub fn hosts() -> Vec<String> {
     HOSTS.iter().map(|s| s.to_string()).collect()
+}
+
+/// A public Drive folder the user added on the Files page.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Folder {
+    pub id: String,
+    pub name: String,
+}
+
+fn valid_id(s: &str) -> bool {
+    (10..=100).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Folder id from a share link (`…/drive/folders/ID?usp=sharing`, `…/drive/u/0/folders/ID`,
+/// `…/open?id=ID`, `…/embeddedfolderview?id=ID`) or a bare id. File links aren't folders.
+pub fn folder_id(input: &str) -> Option<String> {
+    let s = input.trim();
+    if valid_id(s) {
+        return Some(s.to_string());
+    }
+    let u = reqwest::Url::parse(s).ok()?;
+    if !matches!(u.host_str(), Some("drive.google.com")) || u.path().contains("/file/") {
+        return None;
+    }
+    let segs: Vec<&str> = u.path_segments()?.collect();
+    let id = match segs.iter().position(|x| *x == "folders") {
+        Some(i) => segs.get(i + 1).map(|x| x.to_string()),
+        None => u.query_pairs().find(|(k, _)| k == "id").map(|(_, v)| v.into_owned()),
+    }?;
+    valid_id(&id).then_some(id)
+}
+
+/// Folder name from the embedded view's `<title>` ("Name – Google Drive").
+pub fn folder_title(html: &str) -> Option<String> {
+    let t = regex::Regex::new(r"(?s)<title>(.*?)</title>").unwrap().captures(html)?[1].to_string();
+    let t = html_unescape(t.trim());
+    let t = t.trim_end_matches("Google Drive").trim_end().trim_end_matches(['-', '–', '—']).trim();
+    (!t.is_empty()).then(|| t.to_string())
+}
+
+/// Checks that the link is a folder anyone with the link can open, and finds its name.
+pub async fn folder_info(input: &str, api_key: Option<&str>) -> Result<Folder> {
+    let id = folder_id(input).context("that isn't a Google Drive folder link — open the folder in Drive and copy its link")?;
+    let c = util::http(hosts());
+    let html = c
+        .get(format!("https://drive.google.com/embeddedfolderview?id={id}"))
+        .timeout(Duration::from_secs(20))
+        .send()
+        .await?
+        .text()
+        .await?;
+    if !html.contains("flip-entry") && !html.contains("folder-view") {
+        bail!("this folder isn't public — in Drive, Share → General access → Anyone with the link");
+    }
+    let mut name = folder_title(&html);
+    if let Some(k) = api_key {
+        let v: Option<serde_json::Value> = async {
+            c.get(format!("https://www.googleapis.com/drive/v3/files/{id}")).query(&[("fields", "name"), ("key", k)]).send().await.ok()?.json().await.ok()
+        }
+        .await;
+        name = v.and_then(|v| v["name"].as_str().map(str::to_string)).or(name);
+    }
+    Ok(Folder { name: name.unwrap_or_else(|| "Google Drive folder".into()), id })
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -202,6 +264,32 @@ mod tests {
         assert!(!e[0].is_folder);
         assert!(e[1].is_folder);
         assert_eq!(e[1].name, "Wizardon's Mods & Packs");
+    }
+
+    #[test]
+    fn folder_links() {
+        let id = "1AbCdEfGhIjKlMnOpQrStUvWxYz_-012";
+        for link in [
+            format!("https://drive.google.com/drive/folders/{id}?usp=sharing"),
+            format!("https://drive.google.com/drive/u/0/folders/{id}"),
+            format!("https://drive.google.com/open?id={id}"),
+            format!("https://drive.google.com/embeddedfolderview?id={id}#list"),
+            format!("  {id}  "),
+        ] {
+            assert_eq!(folder_id(&link).as_deref(), Some(id), "{link}");
+        }
+        assert!(folder_id(&format!("https://drive.google.com/file/d/{id}/view")).is_none());
+        assert!(folder_id(&format!("https://evil.example/drive/folders/{id}")).is_none());
+        assert!(folder_id("https://drive.google.com/drive/folders/../x").is_none());
+        assert!(folder_id("hello").is_none());
+    }
+
+    #[test]
+    fn folder_titles() {
+        assert_eq!(folder_title("<html><title>Mods &amp; Packs – Google Drive</title>").as_deref(), Some("Mods & Packs"));
+        assert_eq!(folder_title("<title>Presets - Google Drive</title>").as_deref(), Some("Presets"));
+        assert_eq!(folder_title("<title>Google Drive</title>"), None);
+        assert_eq!(folder_title("<html>no title</html>"), None);
     }
 
     #[test]
