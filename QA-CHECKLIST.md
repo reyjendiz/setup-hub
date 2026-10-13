@@ -105,7 +105,7 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Without Discord → "Install Discord, then Ven" installs Discord, then Ven.
 - [ ] With Discord → **Install Ven** → `%LOCALAPPDATA%\Programs\Ven\Ven.exe`, `HKCU\…\Run\Ven` = `"…\Ven.exe" --startup`, Start Menu "Ven"; Discord opens **with Vencord** (Settings shows the Vencord section) and is **not** elevated (Task Manager › Details › Elevated = No); the page shows all three rows green and "Last run …: Vencord is up to date; Discord started".
 - [ ] Task Manager › Startup apps: Discord = Disabled, Ven = Enabled.
-- [ ] Restart the PC → after sign-in Discord opens minimized to the tray with Vencord; `%LOCALAPPDATA%\Ven\ven.log` shows the run (installer update skipped or done, `installer: … Successfully patched`).
+- [ ] Restart the PC → after sign-in the Discord window opens with Vencord; `%LOCALAPPDATA%\Ven\ven.log` shows the run (installer update skipped or done, `installer: … Successfully patched`).
 - [ ] Let Discord update itself (or install an older Discord), restart → Vencord is still there.
 - [ ] Unplug the network, restart → Discord still opens; the Ven page shows "offline — Vencord not checked" in orange.
 - [ ] **Run now** → Discord closes and reopens with Vencord; the last-run line updates.

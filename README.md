@@ -151,7 +151,7 @@ Every run of `Ven.exe`:
 - marks Discord's own Run entry *Disabled* (`Explorer\StartupApproved\Run\Discord`, what Task Manager › Startup apps does — Discord rewrites its Run value but never this flag), so Discord can't open before Vencord is in place;
 - waits for the network (up to 2 minutes at sign-in), then updates `%LOCALAPPDATA%\Ven\VencordInstallerCli.exe` from the latest [Vencord/Installer](https://github.com/Vencord/Installer) release when its SHA-256 (GitHub's asset digest, required) differs — only GitHub hosts are followed;
 - runs `VencordInstallerCli -install -branch stable`: the installer downloads the latest [Vencord](https://github.com/Vendicated/Vencord) when it changed, closes Discord if it's open, and patches the newest Discord version (Vencord's own `persistAfterDiscordUpdates` keeps it in place across Discord updates in between);
-- starts Discord with `Update.exe --processStart Discord.exe` (plus `--process-start-args --start-minimized` at sign-in, like Discord's own autostart). Offline, it skips the update and still starts Discord.
+- starts Discord with `Update.exe --processStart Discord.exe` (the window opens, also at sign-in). Offline, it skips the update and still starts Discord.
 
 Each run is logged to `%LOCALAPPDATA%\Ven\ven.log`; `status.json` holds the last result, which the Ven page shows with **Run now** and **Remove Ven** (removes Ven, gives Discord its autostart back; Vencord stays in Discord).
 

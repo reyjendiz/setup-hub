@@ -40,13 +40,9 @@ pub fn cli_asset(rel: &Release) -> Result<(String, String), String> {
 #[cfg_attr(not(windows), allow(dead_code))]
 pub const STARTUP_DISABLED: [u8; 12] = [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-/// Arguments for Discord's Squirrel launcher; at sign-in Discord starts to the tray like its own autostart.
-pub fn discord_args(startup: bool) -> Vec<&'static str> {
-    let mut a = vec!["--processStart", "Discord.exe"];
-    if startup {
-        a.extend(["--process-start-args", "--start-minimized"]);
-    }
-    a
+/// Arguments for Discord's Squirrel launcher; no `--start-minimized`, so the Discord window opens.
+pub fn discord_args() -> [&'static str; 2] {
+    ["--processStart", "Discord.exe"]
 }
 
 /// Unix seconds → "2026-10-09 17:52:34 UTC" (civil-from-days, no time-zone database needed).
@@ -113,8 +109,7 @@ mod tests {
 
     #[test]
     fn launch_args() {
-        assert_eq!(discord_args(false), vec!["--processStart", "Discord.exe"]);
-        assert_eq!(discord_args(true), vec!["--processStart", "Discord.exe", "--process-start-args", "--start-minimized"]);
+        assert_eq!(discord_args(), ["--processStart", "Discord.exe"]);
     }
 
     #[test]

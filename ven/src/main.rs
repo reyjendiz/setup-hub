@@ -6,7 +6,7 @@
 //!   2. updates VencordInstallerCli.exe from Vencord/Installer's latest GitHub release (SHA-256 checked);
 //!   3. runs `VencordInstallerCli -install -branch stable`: it downloads the latest Vencord when it changed,
 //!      closes Discord if it's open and patches the newest Discord version;
-//!   4. starts Discord (to the tray at sign-in, like Discord's own autostart).
+//!   4. starts Discord with its window open.
 //! Without network it skips 2–3 and still starts Discord. Everything is logged to %LOCALAPPDATA%\Ven\ven.log
 //! and the outcome of the last run is kept in status.json for Setup Hub's Ven page.
 
@@ -110,7 +110,7 @@ fn run(startup: bool, log: &Log) -> Status {
         }
     };
 
-    let discord_started = match launch_discord(&update_exe, startup) {
+    let discord_started = match launch_discord(&update_exe) {
         Ok(()) => true,
         Err(e) => {
             problems.push(format!("Discord didn't start: {e}"));
@@ -199,9 +199,9 @@ fn patch(cli: &Path, log: &Log) -> Result<(), String> {
     }
 }
 
-fn launch_discord(update_exe: &Path, startup: bool) -> Result<(), String> {
+fn launch_discord(update_exe: &Path) -> Result<(), String> {
     let mut cmd = Command::new(update_exe);
-    cmd.args(discord_args(startup)).current_dir(update_exe.parent().unwrap_or(Path::new(".")));
+    cmd.args(discord_args()).current_dir(update_exe.parent().unwrap_or(Path::new(".")));
     cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 

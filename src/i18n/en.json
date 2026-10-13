@@ -159,7 +159,7 @@
   "ven.installBoth": "Install Discord, then Ven",
   "ven.remove": "Remove Ven",
   "ven.runNow": "Run now",
-  "ven.how": "Discord's own “Open Discord on startup” is switched off (Task Manager › Startup apps shows it as Disabled) so Discord can't open before Vencord is in place — Ven opens it instead, minimized to the tray. Remove Ven gives Discord its autostart back; Vencord itself stays in Discord (uninstall it with Vencord's own installer).",
+  "ven.how": "Discord's own “Open Discord on startup” is switched off (Task Manager › Startup apps shows it as Disabled) so Discord can't open before Vencord is in place — Ven opens it instead. Remove Ven gives Discord its autostart back; Vencord itself stays in Discord (uninstall it with Vencord's own installer).",
 
   "act.title": "Activation",
   "act.subtitle": "Your Windows license status. Only your own key or digital license.",
