@@ -3610,7 +3610,7 @@ dependencies = [
 
 [[package]]
 name = "setup-hub"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "anyhow",
  "futures",
