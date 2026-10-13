@@ -494,6 +494,54 @@
       "allowed_hosts": ["github.com", "githubusercontent.com"]
     },
     {
+      "id": "figcraft", "name": "FigCraft", "category": "creative",
+      "description": { "en": "Interface design, like Figma (ArtCraft)", "ru": "Дизайн интерфейсов, как Figma (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/figcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^fig ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "wordcraft", "name": "WordCraft", "category": "creative",
+      "description": { "en": "Word processor, like Word (ArtCraft)", "ru": "Текстовый редактор, как Word (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/wordcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^word ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "soundcraft", "name": "SoundCraft", "category": "creative",
+      "description": { "en": "Audio recording and mixing (ArtCraft)", "ru": "Запись и сведение звука (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/soundcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^sound ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "deckcraft", "name": "DeckCraft", "category": "creative",
+      "description": { "en": "Presentations, like PowerPoint (ArtCraft)", "ru": "Презентации, как PowerPoint (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/deckcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^deck ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "cadcraft", "name": "CADCraft", "category": "creative",
+      "description": { "en": "CAD and drafting, like AutoCAD (ArtCraft)", "ru": "САПР и черчение, как AutoCAD (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/cadcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^cad ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "gridcraft", "name": "GridCraft", "category": "creative",
+      "description": { "en": "Spreadsheets, like Excel (ArtCraft)", "ru": "Таблицы, как Excel (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/gridcraft", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^grid ?craft" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
       "id": "pdfcraft", "name": "PdfCraft", "category": "creative",
       "description": { "en": "PDF editor, like Acrobat (ArtCraft)", "ru": "PDF-редактор, как Acrobat (ArtCraft)" },
       "source": { "type": "github_release", "repo": "storytold/pdfcraft", "asset_regex": "windows-x64\\.msi$" },
@@ -706,16 +754,6 @@
       "silent_args": [],
       "detect": { "appx": "40174MouriNaruto.NanaZip_" },
       "allowed_hosts": ["github.com", "githubusercontent.com"]
-    },
-    {
-      "id": "onlyoffice", "name": "ONLYOFFICE", "category": "productivity",
-      "description": { "en": "Free office suite: documents, sheets, slides, PDF", "ru": "Бесплатный офис: документы, таблицы, презентации, PDF" },
-      "winget_id": "ONLYOFFICE.DesktopEditors",
-      "source": { "type": "github_release", "repo": "ONLYOFFICE/DesktopEditors", "asset_regex": "^DesktopEditors_x64\\.exe$" },
-      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
-      "detect": { "display_name": "^ONLYOFFICE" },
-      "allowed_hosts": ["github.com", "githubusercontent.com"],
-      "publisher": "Ascensio"
     },
     {
       "id": "viber", "name": "Viber", "category": "communication",
