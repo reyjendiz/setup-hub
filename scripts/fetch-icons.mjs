@@ -35,6 +35,8 @@ const SOURCES = {
   deckcraft: [craft("deckcraft"), "getartcraft.com"],
   cadcraft: [craft("cadcraft"), "getartcraft.com"],
   gridcraft: [craft("gridcraft"), "getartcraft.com"],
+  artcraft: ["https://raw.githubusercontent.com/storytold/artcraft/HEAD/crates/desktop/artcraft/icons/128x128.png", "getartcraft.com"],
+  "artcraft-launcher": ["https://raw.githubusercontent.com/storytold/craft-launcher/HEAD/assets/app-icon/hicolor/128x128/apps/ai.storyteller.artcraft-launcher.png", "getartcraft.com"],
   qbittorrent: [null, "qbittorrent.org"],
   ven: [null, "vencord.dev"],
   claude: [null, "claude.ai"], // committed icon: the desktop app's own icon, resized to 128x128

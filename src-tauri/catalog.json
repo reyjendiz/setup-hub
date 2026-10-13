@@ -542,6 +542,22 @@
       "allowed_hosts": ["github.com", "githubusercontent.com"]
     },
     {
+      "id": "artcraft", "name": "ArtCraft", "category": "creative",
+      "description": { "en": "Crafting engine for artists, designers and filmmakers (ArtCraft)", "ru": "Среда для художников, дизайнеров и кинематографистов (ArtCraft)" },
+      "source": { "type": "github_release", "repo": "storytold/artcraft", "asset_regex": "ArtCraft_.*_x64_en-US\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^art ?craft$" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
+      "id": "artcraft-launcher", "name": "ArtCraft Launcher", "category": "creative",
+      "description": { "en": "Launcher that installs and updates the ArtCraft apps", "ru": "Лаунчер, который ставит и обновляет приложения ArtCraft" },
+      "source": { "type": "github_release", "repo": "storytold/craft-launcher", "asset_regex": "windows-x64\\.msi$" },
+      "silent_args": ["/qn", "/norestart"],
+      "detect": { "display_name": "(?i)^art ?craft launcher" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
+    },
+    {
       "id": "pdfcraft", "name": "PdfCraft", "category": "creative",
       "description": { "en": "PDF editor, like Acrobat (ArtCraft)", "ru": "PDF-редактор, как Acrobat (ArtCraft)" },
       "source": { "type": "github_release", "repo": "storytold/pdfcraft", "asset_regex": "windows-x64\\.msi$" },
