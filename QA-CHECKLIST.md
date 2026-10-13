@@ -21,7 +21,7 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] NordVPN (needs reboot) → restart banner appears at the end; **Later** hides it, **Restart now** restarts in 5 s.
 - [ ] Force a failure (disconnect the network mid-download) → red **Retry** + **Details** with the error; reconnect → Retry resumes the partial download.
 - [ ] Offline launch → app opens; catalog origin says "embedded"; installs fail with a clear network error, no crash.
-- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, qBittorrent, VLC, Node.js, Python, Python Launcher, uv, FFmpeg) fail with "winget is not available…".
+- [ ] No winget (VM without App Installer registered): first install registers it; if that fails, vendor fallbacks run and winget-only apps (CapCut, qBittorrent, Node.js, Python, Python Launcher, uv, FFmpeg) fail with "winget is not available…".
 - [ ] AutoLogon → extracted to `C:\Program Files\SetupHub\Tools\Autologon`, Start Menu shortcut "Sysinternals AutoLogon", tool opens; nothing is typed into it.
 - [ ] Tabs: **Programs** (default) and **Games** (Steam, GearUP, Astrum Play, AVA Mod Manager) with counts; the chosen tab survives a restart; search filters inside the tab and the counts show matches per tab.
 - [ ] Programs tab shows four sections — Everyday, For designers, For programmers, Dev toolchain — each with **Install these (n)** that installs only that section's missing apps; search hides empty sections.
@@ -82,13 +82,12 @@ Take a VM snapshot first, then revert between the "fresh" runs. Copy only `setup
 - [ ] Re-applying a tweak twice and then reverting restores the *original* values (snapshot isn't overwritten).
 
 ## Default apps
-- [ ] Install **VLC** → card says "Set as the default app — Windows applies it at your next sign-in". `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` = `C:\ProgramData\SetupHub\DefaultAssociations.xml`; the XML lists `VLC.mp4` etc. with `Suggested="true"` and no `.iso`/`.zip`/`.rar`.
-- [ ] Install **Chrome** and **PdfCraft** → the same XML now also has `http`/`https`/`.html` → `ChromeHTML` and `.pdf` → `PdfCraft.Document`, with a higher `Version`.
-- [ ] Tweaks → Default apps shows Chrome, VLC and PdfCraft with "Applies at your next sign-in". Sign out and in → a link opens Chrome, an .mp4/.mkv/.mp3 opens VLC, a PDF opens PdfCraft; the cards show ✓ Applied with "n of n types".
-- [ ] Windows 11: pick Media Player for .mp4 in Settings, sign out and in → it stays Media Player (Suggested = applied once). **Apply** again → VLC again after the next sign-in.
-- [ ] **Revert** VLC → VLC's rows are gone from the XML (policy and file removed when nothing is left); .mp4 still opens VLC until changed.
+- [ ] Install **Chrome** and **PdfCraft** → card says "Set as the default app — Windows applies it at your next sign-in". `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\DefaultAssociationsConfiguration` = `C:\ProgramData\SetupHub\DefaultAssociations.xml`; the XML has `http`/`https`/`.html` → `ChromeHTML` and `.pdf` → `PdfCraft.Document`, with a higher `Version`.
+- [ ] Tweaks → Default apps shows Chrome and PdfCraft with "Applies at your next sign-in". Sign out and in → a link opens Chrome, a PDF opens PdfCraft; the cards show ✓ Applied with "n of n types".
+- [ ] Windows 11: pick Edge for .html in Settings, sign out and in → it stays Edge (Suggested = applied once). **Apply** again → Chrome again after the next sign-in.
+- [ ] **Revert** Chrome → Chrome's rows are gone from the XML (policy and file removed when nothing is left); links still open Chrome until changed.
 - [ ] **Open Settings** opens Settings › Default apps › the app's page.
-- [ ] Set `DefaultAssociationsConfiguration` to another path first → installing VLC leaves it untouched and the card offers Open Settings.
+- [ ] Set `DefaultAssociationsConfiguration` to another path first → installing Chrome leaves it untouched and the card offers Open Settings.
 - [ ] Windows 11 Home VM: cards show the Home warning; note here whether Windows applied the policy after sign-in.
 
 ## Drivers

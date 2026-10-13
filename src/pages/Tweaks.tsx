@@ -91,7 +91,7 @@ export default function Tweaks() {
   );
 }
 
-/** Catalog apps that replace a built-in Windows app (VLC, Chrome, PdfCraft). */
+/** Catalog apps that replace a built-in Windows app (Chrome, PdfCraft). */
 function DefaultApps() {
   const { t, lang } = useT();
   const { boot, installed, items } = useApp();

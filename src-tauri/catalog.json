@@ -577,23 +577,13 @@
       "allowed_hosts": []
     },
     {
-      "id": "vlc", "name": "VLC media player", "category": "media",
-      "description": { "en": "Plays any video or audio file", "ru": "Играет любые видео и аудио" },
-      "winget_id": "VideoLAN.VLC",
-      "source": { "type": "winget" },
-      "silent_args": [],
-      "detect": { "display_name": "^VLC media player" },
-      "allowed_hosts": [],
-      "defaults": {
-        "app": "VLC",
-        "what": { "en": "Video, audio and playlist files", "ru": "Видео, аудио и плейлисты" },
-        "types": [
-          ".3ga", ".669", ".a52", ".aac", ".ac3", ".adt", ".adts", ".aif", ".aifc", ".aiff", ".amr", ".aob", ".ape", ".au", ".caf", ".cda", ".dts", ".flac", ".it", ".m4a", ".m4p", ".mka", ".mlp", ".mod", ".mp1", ".mp2", ".mp3", ".mpc", ".mpga", ".oga", ".oma", ".opus", ".qcp", ".ra", ".rmi", ".s3m", ".snd", ".spx", ".tta", ".voc", ".vqf", ".w64", ".wav", ".wma", ".wv", ".xa", ".xm",
-          ".3g2", ".3gp", ".3gp2", ".3gpp", ".amv", ".asf", ".avi", ".bik", ".dav", ".divx", ".drc", ".dv", ".dvr-ms", ".evo", ".f4v", ".flv", ".gvi", ".gxf", ".m1v", ".m2t", ".m2ts", ".m2v", ".m4v", ".mkv", ".mov", ".mp2v", ".mp4", ".mp4v", ".mpa", ".mpe", ".mpeg", ".mpeg1", ".mpeg2", ".mpeg4", ".mpg", ".mpv2", ".mts", ".mtv", ".mxf", ".nsv", ".nuv", ".ogg", ".ogm", ".ogv", ".ogx", ".rec", ".rm", ".rmvb", ".rpl", ".thp", ".tod", ".tp", ".ts", ".tts", ".vob", ".vro", ".webm", ".wmv", ".wtv", ".xesc",
-          ".asx", ".m3u", ".m3u8", ".pls", ".wpl", ".wvx", ".xspf"
-        ]
-      },
-      "note": { "en": "Becomes the default player for video, audio and playlists.", "ru": "Станет плеером по умолчанию для видео, аудио и плейлистов." }
+      "id": "mpc-hc", "name": "MPC-HC", "category": "media",
+      "description": { "en": "Lightweight player for any video or audio file", "ru": "Лёгкий плеер для любых видео и аудио" },
+      "winget_id": "clsid2.mpc-hc",
+      "source": { "type": "github_release", "repo": "clsid2/mpc-hc", "asset_regex": "^MPC-HC\\.[0-9.]+\\.x64\\.exe$" },
+      "silent_args": ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+      "detect": { "display_name": "^MPC-HC" },
+      "allowed_hosts": ["github.com", "githubusercontent.com"]
     },
     {
       "id": "flameshot", "name": "Flameshot", "category": "productivity",

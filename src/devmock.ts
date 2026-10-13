@@ -16,7 +16,7 @@ const fake = (id: string, interactive = false) => {
     else {
       clearInterval(tick);
       emit("job", { id, phase: "installing", message: interactive ? "needs-interaction" : null });
-      const message = ["vlc", "chrome", "pdfcraft"].includes(id) ? "default-signin" : id === "flameshot" ? "default-print-screen" : null;
+      const message = ["chrome", "pdfcraft"].includes(id) ? "default-signin" : id === "flameshot" ? "default-print-screen" : null;
       setTimeout(() => emit("job", id === "figma" ? { id, phase: "failed", message: "installer exited with code 1603 (0x00000643)" } : { id, phase: "done", reboot: id === "nordvpn", version: "1.0", message }), 1400);
     }
   }, 250);
@@ -90,7 +90,6 @@ mockIPC(
       case "defaults_states":
         return [
           { id: "chrome", name: "Google Chrome", installed: true, applied: true, pending: false, can_revert: true, ours: 7, total: 7, home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=Google%20Chrome" },
-          { id: "vlc", name: "VLC media player", installed: true, applied: false, pending: true, can_revert: true, ours: 0, total: 114, home: false, settings_uri: "ms-settings:defaultapps?registeredAppMachine=VLC" },
           { id: "pdfcraft", name: "PdfCraft", installed: false, applied: false, pending: false, can_revert: false, ours: 0, total: 1, home: false, settings_uri: "ms-settings:defaultapps" },
         ];
       case "check_self_update":

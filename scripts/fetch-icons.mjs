@@ -43,7 +43,7 @@ const SOURCES = {
   nanazip: ["https://raw.githubusercontent.com/M2Team/NanaZip/main/Assets/NanaZip.png", "github.com"],
   viber: [null, "viber.com"],
   jonsbo: [null, "jonsbo.com"],
-  vlc: ["https://raw.githubusercontent.com/videolan/vlc/3.0.x/share/icons/128x128/vlc.png", "videolan.org"],
+  "mpc-hc": [null, "mpc-hc.org"],
   chrome: ["https://raw.githubusercontent.com/alrra/browser-logos/main/src/chrome/chrome_128x128.png", "google.com"],
   python: ["https://raw.githubusercontent.com/python/cpython/main/PC/icons/logox128.png", "python.org"],
   pylauncher: ["https://raw.githubusercontent.com/python/cpython/main/PC/icons/py.png", "python.org"],

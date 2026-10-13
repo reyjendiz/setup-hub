@@ -1,5 +1,5 @@
-//! Makes apps the default for what they replace in Windows: VLC instead of Media Player, Chrome
-//! instead of Edge for links and web pages, PdfCraft instead of Edge for PDFs.
+//! Makes apps the default for what they replace in Windows: Chrome instead of Edge for
+//! links and web pages, PdfCraft instead of Edge for PDFs.
 //!
 //! It goes through Windows' own "default associations configuration" policy: Windows writes the
 //! protected UserChoice keys itself at the next sign-in. Associations are marked Suggested, so on
@@ -346,15 +346,6 @@ mod tests {
     fn catalog_defaults() {
         let c = parse(EMBEDDED).unwrap();
         let get = |id: &str| c.items.iter().find(|i| i.id == id).unwrap().defaults.clone().unwrap();
-        let vlc = get("vlc");
-        assert_eq!(vlc.app, "VLC");
-        for t in [".mp4", ".mkv", ".avi", ".mp3", ".flac", ".m3u8"] {
-            assert!(vlc.types.iter().any(|x| x == t), "{t}");
-        }
-        // VLC registers these too, but they aren't a media player's to take.
-        for t in [".iso", ".zip", ".rar", ".vlt", ".wsz"] {
-            assert!(!vlc.types.iter().any(|x| x == t), "{t}");
-        }
         let chrome = get("chrome");
         assert_eq!(chrome.app, "Google Chrome");
         for t in ["http", "https", ".htm", ".html"] {
@@ -373,7 +364,7 @@ mod tests {
     #[test]
     fn remote_catalog_cannot_hand_out_executables() {
         for bad in [r#"".exe""#, r#"".ps1""#, r#""mp4""#, r#"".lnk""#, r#""ftp""#, r#""ms-settings""#] {
-            let evil = EMBEDDED.replacen(r#"".mp4""#, bad, 1);
+            let evil = EMBEDDED.replacen(r#"".htm""#, bad, 1);
             assert!(parse(&evil).is_err(), "{bad}");
         }
     }
