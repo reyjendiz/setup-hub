@@ -1,0 +1,16 @@
+[package]
+name = "ven-setup"
+version = "1.0.0"
+edition = "2021"
+description = "Standalone installer for Ven (Vencord updater + Discord launcher), for people without Setup Hub"
+publish = false
+
+[dependencies]
+winreg = "0.55"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

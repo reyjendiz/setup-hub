@@ -4,3 +4,4 @@ src-tauri/target/
 src-tauri/gen/
 *.log
 ven/target/
+ven-setup/target/
